@@ -12,8 +12,24 @@
   --ok:#35C08A; --wa:#F2B33D; --al:#FF4D57;
 }
 *{box-sizing:border-box}
-html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--ink);
   font-family:"ABBvoice","Segoe UI",system-ui,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+/* the page is authored on a 1680-wide canvas and scaled to whatever frame hosts it,
+   so an embedded widget never overlaps, it only gets smaller */
+#stage{position:absolute;top:0;left:0;width:1680px;transform-origin:0 0}
+#stage.tight .note{display:none}
+#stage.tight .kpi{padding:6px 10px}
+#stage.tight .kpi .v{font-size:17px}
+#stage.tight .kpi .k{font-size:8.6px}
+#stage.tight .rail{width:306px}
+#stage.tight .scn{max-height:116px;overflow:auto}
+#stage.tight .seq{max-height:104px}
+#stage.tight .mast{padding:7px 14px 6px}
+#stage.tight .mast h1{font-size:15px}
+#stage.tight .mast .sub{font-size:10px}
+#stage.vtight .ctl,#stage.vtight #ctlh{display:none}
+#stage.vtight .scn{flex:1;min-height:0;max-height:none;overflow:auto;align-content:start}
+#stage.vtight .seq{max-height:98px}
 .sheet{height:100%;padding:8px;display:flex;flex-direction:column;overflow:hidden}
 .frame{flex:1;min-height:0;display:flex;flex-direction:column;background:var(--pan);
   border:1px solid var(--line)}
@@ -83,8 +99,8 @@ input[type=range]::-moz-range-thumb{width:10px;height:10px;background:var(--ink)
 .seq .none{font-size:11.3px;color:var(--ok)}
 .fpiline{font-size:11.6px;margin-bottom:7px;color:var(--ink2)}
 
-.kpis{flex:none;display:flex;border-top:1px solid var(--line)}
-.kpi{flex:1;padding:9px 13px;border-right:1px solid var(--line2)}
+.kpis{flex:none;display:flex;flex-wrap:nowrap;border-top:1px solid var(--line)}
+.kpi{flex:1 1 0;min-width:0;padding:9px 13px;border-right:1px solid var(--line2)}
 .kpi:last-child{border-right:0}
 .kpi .k{font:600 9.4px/1.4 "Consolas",ui-monospace,monospace;letter-spacing:.09em;color:var(--ink3)}
 .kpi .v{font:700 22px/1.14 "Consolas",ui-monospace,monospace;margin-top:3px}
@@ -104,6 +120,7 @@ text{font-family:"Consolas",ui-monospace,monospace}
 </style>
 </head>
 <body>
+<div id="stage">
 <div class="sheet"><div class="frame">
 
 <div class="mast">
@@ -112,7 +129,7 @@ text{font-family:"Consolas",ui-monospace,monospace}
     <div class="sub">EQI 214 &nbsp;&middot;&nbsp; EFM 17 &ldquo;SAG Mill 903 Integrated Diagnostic&rdquo; &nbsp;&middot;&nbsp; failure mode <i>Bearing Lubrication Failure</i> (1 of 3)</div>
   </div>
   <div class="rt">LIVE TWIN &nbsp;/&nbsp; DWG CA-SAG-GMD-DT-003<br>
-    REV. C &nbsp;/&nbsp; EFM 17 TAGS &nbsp;/&nbsp; SIMULATOR REPLAY</div>
+    REV. F &nbsp;/&nbsp; BUILD 2026-10-14 &nbsp;/&nbsp; EFM 17 TAGS</div>
 </div>
 
 <div class="tbar">
@@ -352,52 +369,51 @@ var CW="#3FB8DC";
 d+=L(636,46,1400,46,{id:"cwS",stroke:CW,"stroke-width":1.7,class:"anim"})
  +L(636,92,1400,92,{id:"cwR",stroke:"#2A7A91","stroke-width":1.5})
  +TL(642,38,"COOLING WATER — SUPPLY",{fill:"#6FC9E3"})+TL(642,112,"RETURN",{fill:"#4C8FA3"});
-[712,736,764,788].forEach(function(x,k){
-  d+=L(x,46,x,150,{id:"cwB"+k,stroke:CW,"stroke-width":1.4,class:"anim","marker-end":"url(#ar)"});});
-d+=L(812,150,812,92,{stroke:"#2A7A91"})
+[727,741,759,773].forEach(function(x,k){
+  d+=L(x,46,x,160,{id:"cwB"+k,stroke:CW,"stroke-width":1.4,class:"anim","marker-end":"url(#ar)"});});
+d+=L(790,160,790,92,{stroke:"#2A7A91"})
  +L(1390,46,1390,505,{id:"cwCC",stroke:CW,"stroke-width":1.4,class:"anim","marker-end":"url(#ar)"})
  +L(1356,505,1356,92,{stroke:"#2A7A91"});
 
-/* stator ring and mill */
-d+='<ellipse cx="735" cy="386" rx="312" ry="15" fill="url(#gSd)"/>';
+/* stator ring and mill — drawn to the real aspect ratio, L/D = 6.10 / 11.10 = 0.55 */
+d+='<ellipse cx="735" cy="412" rx="300" ry="15" fill="url(#gSd)"/>';
 /* trunnions */
-d+=R(420,252,50,56,{id:"trF",fill:"url(#gTr)",stroke:"#6A8796","stroke-width":1.2})
- +'<ellipse cx="420" cy="280" rx="8" ry="28" fill="#24363F" stroke="#6A8796" stroke-width="1"/>'
- +R(1000,252,50,56,{id:"trD",fill:"url(#gTr)",stroke:"#6A8796","stroke-width":1.2})
- +'<ellipse cx="1050" cy="280" rx="8" ry="28" fill="#24363F" stroke="#6A8796" stroke-width="1"/>';
+d+=R(535,255,84,50,{id:"trF",fill:"url(#gTr)",stroke:"#6A8796","stroke-width":1.2})
+ +'<ellipse cx="535" cy="280" rx="8" ry="25" fill="#24363F" stroke="#6A8796" stroke-width="1"/>'
+ +R(851,255,84,50,{id:"trD",fill:"url(#gTr)",stroke:"#6A8796","stroke-width":1.2})
+ +'<ellipse cx="935" cy="280" rx="8" ry="25" fill="#24363F" stroke="#6A8796" stroke-width="1"/>';
 /* conical heads */
-d+=P("M470 238L520 198V362L470 322Z",{fill:"url(#gHd)",stroke:"#6A8796","stroke-width":1.3})
- +P("M1000 238L950 198V362L1000 322Z",{fill:"url(#gHd)",stroke:"#6A8796","stroke-width":1.3});
-/* shell */
-d+=R(520,198,430,164,{id:"shell",fill:"url(#gSt)",stroke:"#8AA6B5","stroke-width":1.5})
- +'<rect x="520" y="203" width="430" height="7" fill="#DCEAF2" opacity=".20"/>'
- +'<rect x="520" y="348" width="430" height="11" fill="#000000" opacity=".26"/>';
-/* rotor poles, then the stator ring over them */
-for(var p=0;p<9;p++){ var px=706+p*11;
-  d+='<rect x="'+px+'" y="197" width="4" height="18" fill="#FF4D57" opacity=".92"/>'
-   +'<rect x="'+px+'" y="345" width="4" height="18" fill="#FF4D57" opacity=".92"/>'; }
-d+=R(700,150,100,270,{fill:"url(#gRg)",stroke:"#9BB8C8","stroke-width":1.4,id:"ring",opacity:".90"})
- +'<rect x="700" y="196" width="100" height="3" fill="#FF4D57" opacity=".55"/>'
- +'<rect x="700" y="361" width="100" height="3" fill="#FF4D57" opacity=".55"/>' 
- +'<rect x="700" y="156" width="100" height="7" fill="#E4F0F7" opacity=".26"/>'
- +'<rect x="700" y="404" width="100" height="11" fill="#000000" opacity=".30"/>'
- +'<rect x="694" y="150" width="7" height="270" fill="#2A3F4B" stroke="#6A8796" stroke-width=".9"/>'
- +'<rect x="799" y="150" width="7" height="270" fill="#2A3F4B" stroke="#6A8796" stroke-width=".9"/>'
- +TL(750,438,"STATOR RING",{"text-anchor":"middle","font-size":9.5});
-/* brake calipers */
-d+=R(925,170,22,28,{fill:"url(#gTr)",stroke:"#6A8796","stroke-width":1})
- +R(925,362,22,28,{fill:"url(#gTr)",stroke:"#6A8796","stroke-width":1})
- +TL(958,166,"BRAKE",{"font-size":8.5});
-/* nameplate */
-d+=TL(608,282,"SAG MILL 800-ML-903",{"text-anchor":"middle","font-size":13,fill:"#F2F8FB","font-weight":"700"})
- +TL(608,299,"11.10 m D \u00D7 6.10 m EGL  /  gearless 19.4 MW",
+d+=P("M619 255L677 175V385L619 305Z",{fill:"url(#gHd)",stroke:"#6A8796","stroke-width":1.3})
+ +P("M851 255L793 175V385L851 305Z",{fill:"url(#gHd)",stroke:"#6A8796","stroke-width":1.3});
+/* shell: 210 px diameter, 116 px effective grinding length */
+d+=R(677,175,116,210,{id:"shell",fill:"url(#gSt)",stroke:"#8AA6B5","stroke-width":1.5})
+ +'<rect x="677" y="180" width="116" height="8" fill="#DCEAF2" opacity=".20"/>'
+ +'<rect x="677" y="368" width="116" height="13" fill="#000000" opacity=".26"/>';
+/* stator ring with the rotor pole band showing through */
+d+=R(722,160,56,240,{fill:"url(#gRg)",stroke:"#9BB8C8","stroke-width":1.4,id:"ring",opacity:".90"})
+ +'<rect x="722" y="174" width="56" height="4" fill="#FF4D57" opacity=".60"/>'
+ +'<rect x="722" y="382" width="56" height="4" fill="#FF4D57" opacity=".60"/>'
+ +'<rect x="722" y="165" width="56" height="7" fill="#E4F0F7" opacity=".26"/>'
+ +'<rect x="722" y="386" width="56" height="12" fill="#000000" opacity=".30"/>'
+ +'<rect x="717" y="160" width="6" height="240" fill="#2A3F4B" stroke="#6A8796" stroke-width=".9"/>'
+ +'<rect x="777" y="160" width="6" height="240" fill="#2A3F4B" stroke="#6A8796" stroke-width=".9"/>'
+ +TL(750,418,"STATOR RING",{"text-anchor":"middle","font-size":9.5});
+/* brake calipers on the discharge head */
+d+=R(686,160,20,16,{fill:"url(#gTr)",stroke:"#6A8796","stroke-width":1})
+ +R(686,384,20,16,{fill:"url(#gTr)",stroke:"#6A8796","stroke-width":1})
+ +TL(652,156,"BRAKE",{"font-size":8.5,"text-anchor":"end"});
+/* nameplate, below the machine */
+d+=TL(735,478,"SAG MILL 800-ML-903",{"text-anchor":"middle","font-size":13,fill:"#F2F8FB","font-weight":"700"})
+ +TL(735,495,"11.10 m D \u00D7 6.10 m EGL  /  gearless 19.4 MW",
      {"text-anchor":"middle","font-size":8.5,fill:"#AFC4D0"});
-d+=TL(398,334,"FEED TRUNNION",{"font-size":7.5})+TL(1004,334,"DISCH. TRUNNION",{"font-size":7.5});
-
+d+=TL(577,277,"FEED",{"text-anchor":"middle","font-size":7,fill:"#2B3E49"})
+ +TL(577,288,"TRUNNION",{"text-anchor":"middle","font-size":7,fill:"#2B3E49"})
+ +TL(893,277,"DISCHARGE",{"text-anchor":"middle","font-size":7,fill:"#2B3E49"})
+ +TL(893,288,"TRUNNION",{"text-anchor":"middle","font-size":7,fill:"#2B3E49"});
 
 /* feed conveyor 800-CV-903 */
 (function(){
-  var ax=66, ay=224, bx=344, by=102;
+  var ax=108, ay=244, bx=470, by=106;
   var dx=bx-ax, dy=by-ay, L0=Math.sqrt(dx*dx+dy*dy), ux=dx/L0, uy=dy/L0;
   var px=-uy, py=ux;                       /* perpendicular, up-left */
   function pt(t,o){ return [(ax+ux*L0*t+px*o).toFixed(1), (ay+uy*L0*t+py*o).toFixed(1)]; }
@@ -419,23 +435,23 @@ d+=TL(398,334,"FEED TRUNNION",{"font-size":7.5})+TL(1004,334,"DISCH. TRUNNION",{
    +C(bx+22,by+14,9,{fill:"#141C21",stroke:"#6A8796","stroke-width":1})
    +T(bx+22,by+17.5,"M",{"text-anchor":"middle","font-size":8.5,"font-weight":"700",fill:"#C3D4DD"});
   for(var k=1;k<=4;k++){ var q=pt(k/5,16); d+=C(+q[0],+q[1],4,{stroke:"#55707E","stroke-width":1}); }
-  d+=TL(50,262,"800-CV-903",{"font-size":9,fill:"#8FA6B2","letter-spacing":".06em"})
-   +TL(50,274,"FEED CONVEYOR",{"font-size":8.4,fill:"#5E7683"});
+  d+=TL(92,282,"800-CV-903",{"font-size":9,fill:"#8FA6B2","letter-spacing":".06em"})
+   +TL(92,294,"FEED CONVEYOR",{"font-size":8.4,fill:"#5E7683"});
 })();
 
 /* feed, trommel, discharge */
 var PU="#B08968";
-d+=P("M352 108H436L468 242H420Z",{fill:"url(#gHd)",stroke:PU,opacity:".92"})
- +R(1050,240,110,80,{fill:"url(#gTr)",stroke:"#6A8796","stroke-width":1.3})+R(1050,240,110,80,{fill:"url(#mesh)",stroke:"none"})+'<ellipse cx="1160" cy="280" rx="9" ry="40" fill="#24363F" stroke="#6A8796" stroke-width=".9"/>'
- +TL(1105,233,"TROMMEL",{"text-anchor":"middle","font-size":9})
- +P("M1058 320H1152L1136 400H1074Z",{fill:"url(#gHd)",stroke:PU,opacity:".9"})
- +R(1060,400,160,80,{id:"box",fill:"#141C21"})
- +TL(1140,445,"DISCHARGE BOX",{"text-anchor":"middle","font-size":9.5})
- +L(1105,480,1105,529,{stroke:PU})+L(1175,480,1175,529,{stroke:PU})
- +C(1105,545,16,{fill:"#141C21"})+C(1175,545,16,{fill:"#141C21"})
- +P("M1095 537L1115 545L1095 553Z",{fill:PU,stroke:"none"})
- +P("M1165 537L1185 545L1165 553Z",{fill:PU,stroke:"none"})
- +TL(1140,578,"SLURRY PUMPS",{"text-anchor":"middle","font-size":8.5});
+d+=P("M440 112H500L600 250H552Z",{fill:"url(#gHd)",stroke:PU,opacity:".92"})+P("M552 250H600V262H552Z",{fill:"url(#gCap)",stroke:PU,opacity:".92"})
+ +R(935,242,110,76,{fill:"url(#gTr)",stroke:"#6A8796","stroke-width":1.3})+R(935,242,110,76,{fill:"url(#mesh)",stroke:"none"})+'<ellipse cx="1045" cy="280" rx="9" ry="38" fill="#24363F" stroke="#6A8796" stroke-width=".9"/>'
+ +TL(990,235,"TROMMEL",{"text-anchor":"middle","font-size":9})
+ +P("M948 318H1038L1022 398H960Z",{fill:"url(#gHd)",stroke:PU,opacity:".9"})
+ +R(948,398,160,80,{id:"box",fill:"#141C21"})
+ +TL(1028,443,"DISCHARGE BOX",{"text-anchor":"middle","font-size":9.5})
+ +L(993,478,993,527,{stroke:PU})+L(1063,478,1063,527,{stroke:PU})
+ +C(993,543,16,{fill:"#141C21"})+C(1063,543,16,{fill:"#141C21"})
+ +P("M983 535L1003 543L983 551Z",{fill:PU,stroke:"none"})
+ +P("M1053 535L1073 543L1053 551Z",{fill:PU,stroke:"none"})
+ +TL(1028,576,"SLURRY PUMPS",{"text-anchor":"middle","font-size":8.5});
 d+=R(1240,505,160,110,{id:"ccroom",fill:"#141C21"})
  +TL(1320,538,"CONVERTER",{"text-anchor":"middle","font-size":9.5})
  +TL(1320,552,"ROOM",{"text-anchor":"middle","font-size":9.5});
@@ -462,18 +478,18 @@ d+=TL(430,500,"HIGH PRESSURE",{"font-size":8})+TL(430,510,"3 DUTY + 1 STANDBY",{
 /* distribution to shoes and returns */
 d+=L(420,562,452,562,{id:"hdr0",stroke:OIL,"stroke-width":1.5,class:"anim"})
  +L(452,562,452,448,{id:"hdr1",stroke:OIL,"stroke-width":1.7,class:"anim"})
- +L(452,448,1028,448,{id:"hdr2",stroke:OIL,"stroke-width":1.7,class:"anim"})
- +R(424,424,48,20,{id:"divF",fill:"#141C21"})+R(1004,424,48,20,{id:"divD",fill:"#141C21"})
- +TL(448,418,"DIVIDER",{"text-anchor":"middle","font-size":7.5})
- +TL(1028,418,"DIVIDER",{"text-anchor":"middle","font-size":7.5});
+ +L(452,448,886,448,{id:"hdr2",stroke:OIL,"stroke-width":1.7,class:"anim"})
+ +R(543,424,54,20,{id:"divF",fill:"#141C21"})+R(859,424,54,20,{id:"divD",fill:"#141C21"})
+ +TL(570,418,"DIVIDER",{"text-anchor":"middle","font-size":7.5})
+ +TL(886,418,"DIVIDER",{"text-anchor":"middle","font-size":7.5});
 [0,1,2,3].forEach(function(k){
-  d+=L(430+k*12,424,430+k*12,310,{id:"pF"+k,stroke:OIL,"stroke-width":1.3,class:"anim","marker-end":"url(#ar)"})
-   +L(1010+k*12,424,1010+k*12,310,{id:"pD"+k,stroke:OIL,"stroke-width":1.3,class:"anim","marker-end":"url(#ar)"});});
-d+=P("M414 300L386 300L386 496L80 496L80 520",{"stroke-dasharray":"6 4",stroke:OILR})
- +P("M1056 300L1086 300L1086 376L336 376L336 496L132 496L132 520",{"stroke-dasharray":"6 4",stroke:OILR});
+  d+=L(549+k*12,424,549+k*12,307,{id:"pF"+k,stroke:OIL,"stroke-width":1.3,class:"anim","marker-end":"url(#ar)"})
+   +L(865+k*12,424,865+k*12,307,{id:"pD"+k,stroke:OIL,"stroke-width":1.3,class:"anim","marker-end":"url(#ar)"});});
+d+=P("M529 300L386 300L386 496L80 496L80 520",{"stroke-dasharray":"6 4",stroke:OILR})
+ +P("M941 300L971 300L971 376L336 376L336 496L132 496L132 520",{"stroke-dasharray":"6 4",stroke:OILR});
 d+=R(58,336,112,40,{id:"grease",fill:"#141C21"})
  +TL(114,361,"GREASE SEAL",{"text-anchor":"middle","font-size":9})
- +P("M170 352L250 352L250 318L414 318",{"stroke-dasharray":"2 3",stroke:"#6A5A3A"});
+ +P("M170 352L250 352L250 318L529 318",{"stroke-dasharray":"2 3",stroke:"#6A5A3A"});
 
 /* instruments */
 ["ZI9373","PI9371","TI9372"].forEach(function(id,k){ d+=bub(292,196+k*76,id); });
@@ -481,7 +497,7 @@ d+=R(58,336,112,40,{id:"grease",fill:"#141C21"})
 d+=bub(104,434,"TI9381")+bub(202,434,"AI9383")+bub(300,434,"PI9384")+bub(398,434,"LI9382");
 d+=bub(506,566,"PI9380")+bub(594,512,"FI9385")+bub(594,592,"XI9386");
 d+=bub(560,104,"JI9301")+bub(916,104,"SI9302")+bub(228,292,"WI9303");
-d+=bub(700,512,"TI9310")+bub(822,512,"ZI9311")+bub(1320,452,"TI9312");
+d+=bub(676,544,"TI9310")+bub(800,544,"ZI9311")+bub(1320,452,"TI9312");
 
 /* legend */
 d+=R(1168,168,214,142,{stroke:"#2A3B46",fill:"#0E171C"})
@@ -809,8 +825,21 @@ document.getElementById("note").innerHTML =
  +'referred to 0.170 mm at design. <b>To confirm:</b> number and area of shoes, and the flow and pressure of the high-pressure unit. '
  +'<b>Not modelled:</b> internal classification, pebble crushing, liner wear, start-up dynamics or the real drive protection.';
 
+/* ── fit the 1680-wide canvas to the host frame ── */
+var stage=document.getElementById("stage");
+function fit(){
+  var w=window.innerWidth||1680, h=window.innerHeight||1000;
+  var H=1680*h/w; if(H<430) H=430;       /* floor, below which it would stop being readable */
+  var s=Math.min(w/1680, h/H);
+  stage.style.height=H+"px";
+  stage.style.transform="scale("+s+")";
+  stage.className = H<560 ? "tight vtight" : (H<770 ? "tight" : "");
+}
+window.addEventListener("resize",fit); fit();
+
 setMode("live"); mark(-1); setSync(true); requestAnimationFrame(tick);
 })();
 </script>
+</div>
 </body>
 </html>
