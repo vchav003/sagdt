@@ -1,0 +1,543 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SAG Mill 800-ML-903 Digital Twin</title>
+<style>
+:root{
+  --paper:#FBFBF8; --ink:#141414; --ink2:#4A4F52; --hair:#A7ADB0; --hair2:#D5D9DB;
+  --red:#FF000F; --amb:#B45309; --ok:#18794E; --band:#F1F2F0;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--paper);color:var(--ink);
+  font-family:"ABBvoice","Segoe UI",system-ui,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+.sheet{height:100%;padding:9px;display:flex;flex-direction:column;overflow:hidden}
+.frame{flex:1;min-height:0;border:1.5px solid var(--ink);display:flex;flex-direction:column;position:relative;background:#fff}
+.mast{flex:none;display:flex;justify-content:space-between;align-items:flex-end;
+  padding:10px 14px 8px;border-bottom:1px solid var(--ink)}
+.mast h1{margin:0;font-size:17px;font-weight:700;letter-spacing:.01em}
+.mast .sub{font-size:11px;color:var(--ink2);margin-top:2px}
+.mast .rt{text-align:right;font:600 9.5px/1.5 "Consolas",ui-monospace,monospace;
+  color:var(--ink2);letter-spacing:.09em}
+.body{flex:1;display:flex;min-height:0}
+.draw{flex:1;min-width:0;min-height:0;position:relative;border-right:1px solid var(--ink)}
+.draw svg{display:block;width:100%;height:100%}
+.rail{width:294px;flex:none;display:flex;flex-direction:column;min-height:0;background:#FCFCFB}
+.rail h2{margin:0;padding:7px 12px 6px;font:700 9px/1.4 "Consolas",ui-monospace,monospace;
+  letter-spacing:.14em;color:var(--ink2);border-bottom:1px solid var(--hair2);background:var(--band)}
+.scn{flex:none;padding:8px 10px;display:grid;grid-template-columns:1fr 1fr;gap:5px;
+  border-bottom:1px solid var(--hair2)}
+.scn button{font:600 9.8px/1.22 inherit;color:var(--ink);background:#fff;
+  border:1px solid var(--hair);padding:5px 6px;text-align:left;cursor:pointer}
+.scn button:hover{border-color:var(--ink)}
+.scn button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.scn button.wide{grid-column:1/-1}
+.ctl{padding:8px 12px 10px;overflow:auto;flex:1;min-height:0}
+.row{margin-bottom:6px}
+.row label{display:flex;justify-content:space-between;align-items:baseline;
+  font-size:10.5px;color:var(--ink2);margin-bottom:2px}
+.row label b{font:700 11px/1 "Consolas",ui-monospace,monospace;color:var(--ink)}
+.ent{display:inline-flex;align-items:center;gap:5px}
+.num{width:60px;text-align:right;background:#fff;color:var(--ink);
+  font:700 11px/1.3 "Consolas",ui-monospace,monospace;
+  border:1px solid var(--hair2);border-radius:0;padding:1px 3px}
+.num:focus{outline:none;border-color:var(--ink);background:#FFFDF2}
+.num.bad{border-color:var(--red);background:#FFF0F0}
+.ent i{font-style:normal;font:600 9.5px/1 "Consolas",ui-monospace,monospace;
+  color:var(--ink2);min-width:48px;text-align:left}
+input[type=range]{width:100%;height:16px;-webkit-appearance:none;background:transparent;margin:0}
+input[type=range]::-webkit-slider-runnable-track{height:2px;background:var(--hair)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;height:11px;
+  background:var(--ink);border-radius:0;margin-top:-4.5px;cursor:pointer}
+input[type=range]::-moz-range-track{height:2px;background:var(--hair)}
+input[type=range]::-moz-range-thumb{width:11px;height:11px;background:var(--ink);
+  border:0;border-radius:0;cursor:pointer}
+.seq{flex:none;border-top:1px solid var(--hair2);padding:8px 12px 10px;background:#fff;max-height:140px;overflow:auto}
+.seq ol{margin:0;padding-left:16px}
+.seq li{font-size:10.5px;line-height:1.45;margin-bottom:3px;color:var(--ink2)}
+.seq li b{color:var(--ink)}
+.seq .none{font-size:10.5px;color:var(--ok)}
+.kpis{flex:none;display:flex;border-top:1px solid var(--ink);background:#fff}
+.kpi{flex:1;padding:6px 10px;border-right:1px solid var(--hair2)}
+.kpi:last-child{border-right:0}
+.kpi .k{font:600 8.5px/1.4 "Consolas",ui-monospace,monospace;letter-spacing:.1em;color:var(--ink2)}
+.kpi .v{font:700 17px/1.12 "Consolas",ui-monospace,monospace;margin-top:1px}
+.kpi .u{font-size:10px;color:var(--ink2);font-weight:400}
+.kpi.w .v{color:var(--amb)} .kpi.a .v{color:var(--red)}
+.kpi.hero{background:#141414;color:#fff}.kpi.hero .k{color:#B9BFC2}.kpi.hero.w .v{color:#FBBF24}.kpi.hero.a .v{color:#FF6B6B}
+.note{flex:none;border-top:1px solid var(--ink);padding:7px 13px 8px;font-size:9.2px;line-height:1.45;max-height:92px;overflow:auto;color:var(--ink2)}
+.note b{color:var(--ink)}
+text{font-family:"Consolas",ui-monospace,monospace}
+.lbl{font-family:"ABBvoice","Segoe UI",system-ui,Arial,sans-serif}
+.alarm{fill:var(--red)!important;stroke:var(--red)!important}
+.warnc{fill:var(--amb)!important;stroke:var(--amb)!important}
+.pipeA{stroke:var(--red)!important;stroke-width:2.2!important}
+.pipeW{stroke:var(--amb)!important;stroke-width:2!important}
+@media (max-width:980px){.body{flex-direction:column}.rail{width:auto;border-top:1px solid var(--ink)}
+  .draw{border-right:0}.kpis{flex-wrap:wrap}.kpi{min-width:33%}}
+</style>
+</head>
+<body>
+<div class="sheet"><div class="frame">
+
+<div class="mast">
+  <div>
+    <h1>Operational twin of SAG mill 800-ML-903</h1>
+    <div class="sub">Hydrostatic bearings, lubrication, grease seal, brake and gearless drive cooling</div>
+  </div>
+  <div class="rt">
+    DIGITAL TWIN &nbsp;/&nbsp; DWG CA-SAG-GMD-DT-002<br>
+    REV. A &nbsp;/&nbsp; EFM 17 TAGS &nbsp;/&nbsp; NO SITE DATA
+  </div>
+</div>
+
+<div class="body">
+  <div class="draw"><svg id="pid" viewBox="0 0 1420 660" preserveAspectRatio="xMidYMid meet"></svg></div>
+
+  <div class="rail">
+    <h2>SCENARIOS</h2>
+    <div class="scn" id="scn"></div>
+    <h2>INPUT VARIABLES</h2>
+    <div class="ctl" id="ctl"></div>
+    <h2>ORDER OF APPEARANCE</h2>
+    <div class="seq" id="seq"></div>
+  </div>
+</div>
+
+<div class="kpis" id="kpis"></div>
+
+<div class="note" id="note"></div>
+
+</div></div>
+<script>
+(function(){
+"use strict";
+
+/* ─────────────── 1. ASSET: SAG MILL 800-ML-903 (GMD) ─────────────── */
+var G = {
+  D:11.10, L:6.10, db:0.14,      // 903 geometry
+  Pnom:19.4, Pdis:17.50,         // drive limit / design point
+  M0:900,                        // empty rotating mass, t
+  rhoB:4.40, rhoR:1.75,
+  nShoe:4, Ashoe:0.62,           // shoes per trunnion (assumption to confirm)
+  Qpump:240, pHP:15000, nHPdes:3,// high-pressure unit (assumption to confirm)
+  hRef:110, hAlr:55,             // reference and alert film, um
+  muRef:0.28, kMu:0.045,         // ISO VG 320
+  gapNom:16.0, alpha:12e-6, Rring:5.55,
+  lossFrac:0.018
+};
+var Vm=Math.PI/4*G.D*G.D*G.L, Nc=42.3/Math.sqrt(G.D-G.db), Aj=G.nShoe*G.Ashoe;
+var DES={Jc:0.26,Jb:0.14,phi:0.733};
+
+function rhoC(Jc,Jb){var f=Jb/Jc;return f*G.rhoB+(1-f)*G.rhoR;}
+function austin(Jc,Jb,phi){var rc=rhoC(Jc,Jb);
+  return Math.pow(G.D,2.5)*G.L*rc*Jc*(1-0.937*Jc)*phi*(1-0.1/Math.pow(2,9-10*phi));}
+var K=G.Pdis/austin(DES.Jc,DES.Jb,DES.phi);
+var Mch0=Vm*DES.Jc*rhoC(DES.Jc,DES.Jb);
+var Wdes=(G.M0+Mch0)*9.81/1000;
+var pRef=Wdes*0.52/Aj;
+var Qjref=(G.Qpump*G.nHPdes)/2;
+var ISO=[{c:"16/14/11",d:5},{c:"18/16/13",d:10},{c:"20/18/15",d:18},{c:"22/20/17",d:32}];
+
+/* ─────────────── 2. EFM TAGS (800-ML-903 / EFM 17) ─────────────── */
+/* w = peso del KDI en el EFM.  cfg=true -> ya configurado;  cfg=false -> lo muestra
+   el P&ID de referencia pero NO está en nuestro EFM.                           */
+var TAGS=[
+ {id:"ZI9376",tag:"800-ZI-9376",d:"Oil film, discharge trunnion",      u:"µm",  w:10, cfg:true},
+ {id:"TI9375",tag:"800-TI-9375",d:"Discharge shoe temperature",  u:"°C",  w:7,  cfg:true},
+ {id:"AI9383",tag:"800-AI-9383",d:"Oil cleanliness ISO 4406", u:"",    w:7,  cfg:true},
+ {id:"PI9374",tag:"800-PI-9374",d:"Discharge shoe pressure",      u:"MPa", w:6,  cfg:true},
+ {id:"PI9380",tag:"800-PI-9380",d:"Supply pressure",        u:"kPa", w:5,  cfg:true},
+ {id:"PI9384",tag:"800-PI-9384",d:"Filter ΔP",                u:"MPa", w:5,  cfg:true},
+ {id:"ZI9373",tag:"800-ZI-9373",d:"Oil film, feed trunnion",  u:"µm",  w:2,  cfg:true},
+ {id:"LI9382",tag:"800-LI-9382",d:"Tank level",           u:"%",   w:2,  cfg:true},
+ {id:"TI9372",tag:"800-TI-9372",d:"Feed shoe temperature",     u:"°C",  w:1,  cfg:true},
+ {id:"TI9381",tag:"800-TI-9381",d:"Oil temperature",       u:"°C",  w:1,  cfg:true},
+ {id:"PI9371",tag:"800-PI-9371",d:"Feed shoe pressure",  u:"MPa", w:0,  cfg:true},
+ /* --- brecha detectada con el P&ID de referencia: existen físicamente, no están en el EFM --- */
+ {id:"JI9301",tag:"800-JI-9301",d:"Drive power",   u:"MW",  w:0,  cfg:false},
+ {id:"SI9302",tag:"800-SI-9302",d:"Mill speed",         u:"rpm", w:0,  cfg:false},
+ {id:"FI9385",tag:"800-FI-9385",d:"High-pressure flow",       u:"L/min",w:0, cfg:false},
+ {id:"XI9386",tag:"800-XI-9386",d:"HP pumps running",            u:"of 3",w:0,  cfg:false},
+ {id:"TI9310",tag:"800-TI-9310",d:"Stator ring",            u:"°C",  w:0,  cfg:false},
+ {id:"ZI9311",tag:"800-ZI-9311",d:"Drive air gap",u:"mm",  w:0,  cfg:false},
+ {id:"TI9312",tag:"800-TI-9312",d:"Converter room",          u:"°C",  w:0,  cfg:false}
+];
+var TM={}; TAGS.forEach(function(t){TM[t.id]=t;});
+var WSUM=TAGS.reduce(function(a,t){return a+(t.cfg?t.w:0);},0);
+
+/* ─────────────── 3. PHYSICAL MODEL ─────────────── */
+function model(s){
+  var o={}, rc=rhoC(s.Jc,s.Jb);
+  o.N=s.phi*Nc; o.Mch=Vm*s.Jc*rc; o.W=(G.M0+o.Mch)*9.81/1000;
+  o.Pcap=s.cc?G.Pnom:G.Pnom*0.70;
+  o.Pdem=K*austin(s.Jc,s.Jb,s.phi);
+  o.P=Math.min(o.Pdem,o.Pcap); o.clip=o.Pdem>o.Pcap;
+  o.pF=o.W*0.48/Aj; o.pD=o.W*0.52/Aj;
+
+  o.Toil=38+20*(1-s.cool)+11*(o.pD/pRef-1)+8*(s.phi/DES.phi-1)+(s.Tcold?-22:0);
+  o.Toil=Math.max(12,Math.min(85,o.Toil));
+  o.mu=G.muRef*Math.exp(-G.kMu*(o.Toil-40));
+
+  o.Qtot=G.Qpump*s.nHP;
+  o.QF=o.Qtot*0.5*(1+s.split); o.QD=o.Qtot*0.5*(1-s.split);
+  o.pSup=s.nHP>0?G.pHP*(0.72+0.28*s.nHP/G.nHPdes):0;
+  function film(Q,p){ return Q<=0?0:G.hRef*Math.pow((Q/Qjref)*(o.mu/G.muRef)*(pRef/p),1/3); }
+  o.hF=film(o.QF,o.pF); o.hD=film(o.QD,o.pD); o.hMin=Math.min(o.hF,o.hD);
+
+  var iso=ISO[s.iso], dp=iso.d;
+  o.bypass=s.dp>0.35;
+  if(o.bypass&&s.iso<ISO.length-1) dp=ISO[s.iso+1].d;
+  o.isoTxt=(o.bypass&&s.iso<ISO.length-1?ISO[s.iso+1].c+"*":iso.c);
+  o.lam=o.hMin/dp;
+
+  var loss=G.lossFrac*G.Pdis*1000*Math.pow(o.P/G.Pdis,2);
+  o.dTw=s.nCool>0?8*(loss/(G.lossFrac*G.Pdis*1000))*(4/s.nCool):60;
+  o.Tsta=s.Twin+o.dTw+25; o.Tcc=s.cc?34:56;
+
+  o.TpF=o.Toil+9+18*Math.max(0,(G.hRef/Math.max(o.hF,1))-1);
+  o.TpD=o.Toil+10+18*Math.max(0,(G.hRef/Math.max(o.hD,1))-1);
+  o.ecc=Math.abs(o.hF-o.hD)/1000/G.gapNom*100;
+  o.grow=G.alpha*G.Rring*1000*(o.Tsta-(28+8+25));
+  o.gap=G.gapNom+o.grow;
+  return o;
+}
+
+/* normalised deviation: 0 = nominal, 1 = alert threshold */
+function kdiOf(x){ x=Math.max(0,x); return Math.max(0,Math.min(110, 100-80*Math.min(x,1)-30*Math.max(0,x-1))); }
+function bandOf(k){ return k>=85?0:(k>=20?1:2); }
+var ST=["","warnc","alarm"], KC=["","w","a"];
+
+/* ─────────────── 4. STATE AND SCENARIOS ─────────────── */
+var S={Jc:0.26,Jb:0.14,phi:0.733,nHP:3,split:0,iso:1,dp:0.12,cool:1,lvl:92,nCool:4,cc:true,Twin:28,Tcold:false};
+
+var SLID=[
+ {k:"Jc",   t:"Total charge filling",    u:"%",     min:0.14,max:0.36,st:0.005,sc:100,dec:1},
+ {k:"Jb",   t:"Ball filling",            u:"%",     min:0.04,max:0.20,st:0.005,sc:100,dec:1},
+ {k:"phi",  t:"Speed",                   u:"% Nc",  min:0.60,max:0.84,st:0.005,sc:100,dec:1},
+ {k:"nHP",  t:"HP pumps running",        u:"of 3",  min:0,   max:3,   st:1,    sc:1,  dec:0},
+ {k:"split",t:"Flow divider imbalance",  u:"%",     min:-0.5,max:0.5, st:0.02, sc:100,dec:0},
+ {k:"iso",  t:"ISO 4406 cleanliness",    u:"class", min:0,   max:3,   st:1,    sc:1,  dec:0, iso:true},
+ {k:"dp",   t:"Filter \u0394P",             u:"MPa",   min:0.02,max:0.60,st:0.01, sc:1,  dec:2},
+ {k:"lvl",  t:"Tank level",              u:"%",     min:40,  max:100, st:1,    sc:1,  dec:0},
+ {k:"cool", t:"Oil cooler capacity",     u:"%",     min:0.3, max:1,   st:0.05, sc:100,dec:0},
+ {k:"nCool",t:"Stator cooling branches", u:"of 4",  min:0,   max:4,   st:1,    sc:1,  dec:0},
+ {k:"Twin", t:"Cooling water",           u:"\u00B0C",    min:18,  max:40,  st:1,    sc:1,  dec:0}
+];
+
+var ESC=[
+ {n:"Normal operation",s:{Jc:0.26,Jb:0.14,phi:0.733,nHP:3,split:0,iso:1,dp:0.12,cool:1,lvl:92,nCool:4,cc:true,Twin:28,Tcold:false}},
+ {n:"One HP pump lost",s:{nHP:2}},
+ {n:"Two HP pumps lost",s:{nHP:1}},
+ {n:"Flow divider off balance",s:{split:0.34}},
+ {n:"Dirty oil, filter in bypass",s:{iso:3,dp:0.46}},
+ {n:"Oil cooler degraded",s:{cool:0.5}},
+ {n:"Leak, low tank level",s:{lvl:58,dp:0.30}},
+ {n:"One stator branch lost",s:{nCool:3}},
+ {n:"Two stator branches lost",s:{nCool:2}},
+ {n:"Converter cooling lost",s:{cc:false}},
+ {n:"Mill overload",s:{Jc:0.32,phi:0.79}},
+ {n:"Cold start",s:{Tcold:true,phi:0.62}}
+];
+
+/* ─────────────── 5. DRAWING ─────────────── */
+var svg=document.getElementById("pid");
+function a(o){var s="";for(var k in o)s+=" "+k+'="'+o[k]+'"';return s;}
+function L(x1,y1,x2,y2,o){return "<line"+a(Object.assign({x1:x1,y1:y1,x2:x2,y2:y2,stroke:"#141414","stroke-width":1.2},o||{}))+"/>";}
+function P(d,o){return "<path"+a(Object.assign({d:d,fill:"none",stroke:"#141414","stroke-width":1.2},o||{}))+"/>";}
+function R(x,y,w,h,o){return "<rect"+a(Object.assign({x:x,y:y,width:w,height:h,fill:"none",stroke:"#141414","stroke-width":1.2},o||{}))+"/>";}
+function C(x,y,r,o){return "<circle"+a(Object.assign({cx:x,cy:y,r:r,fill:"none",stroke:"#141414","stroke-width":1.2},o||{}))+"/>";}
+function T(x,y,s,o){return "<text"+a(Object.assign({x:x,y:y,"font-size":10,fill:"#141414"},o||{}))+">"+s+"</text>";}
+function TL(x,y,s,o){return T(x,y,s,Object.assign({class:"lbl","font-size":10.5,fill:"#4A4F52"},o||{}));}
+
+function bub(x,y,id){
+  var t=TM[id], L2=t.tag.split("-"), let_=L2[1], num=L2[2];
+  var s=C(x,y,17,{id:id+"_c","stroke-dasharray":t.cfg?"":"4 3"})
+   +T(x,y-3,let_,{"text-anchor":"middle","font-size":9.5,"font-weight":"700",id:id+"_t"})
+   +T(x,y+9,num,{"text-anchor":"middle","font-size":8.5,fill:"#4A4F52"})
+   +R(x-46,y+20,92,18,{fill:"#F4F5F3",stroke:"#D5D9DB","stroke-width":.8,id:id+"_r"})
+   +T(x,y+32.5,"—",{"text-anchor":"middle","font-size":10.5,"font-weight":"700",id:id+"_v"});
+  if(t.cfg&&t.w>0) s+=T(x+20,y-11,"w"+t.w,{"font-size":8,fill:"#8A9094","font-weight":"700"});
+  return s;
+}
+
+var d='<defs>'
+ +'<pattern id="hx" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">'
+ +'<line x1="0" y1="0" x2="0" y2="7" stroke="#A7ADB0" stroke-width="1"/></pattern>'
+ +'<pattern id="mesh" width="6" height="6" patternUnits="userSpaceOnUse">'
+ +'<path d="M0 0H6M0 0V6" stroke="#A7ADB0" stroke-width=".8"/></pattern>'
+ +'<marker id="ar" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">'
+ +'<path d="M0 0L7 3.5L0 7z" fill="#141414"/></marker></defs>';
+
+for(var i=1;i<=8;i++){var gx=i*1420/8;
+  d+=L(gx,0,gx,10,{stroke:"#A7ADB0","stroke-width":.8})+L(gx,650,gx,660,{stroke:"#A7ADB0","stroke-width":.8})
+   +T(gx-1420/16,9,String(i),{"text-anchor":"middle","font-size":8,fill:"#A7ADB0"});}
+"ABCDEF".split("").forEach(function(ch,k){var gy=(k+1)*660/6;
+  d+=L(0,gy,10,gy,{stroke:"#A7ADB0","stroke-width":.8})+L(1410,gy,1420,gy,{stroke:"#A7ADB0","stroke-width":.8})
+   +T(6,gy-660/12+3,ch,{"text-anchor":"middle","font-size":8,fill:"#A7ADB0"});}); 
+
+/* cooling water */
+d+=L(636,46,1400,46,{id:"cwS","stroke-width":1.6})+L(636,92,1400,92,{id:"cwR","stroke-width":1.6})
+ +TL(642,38,"COOLING WATER — SUPPLY")+TL(642,112,"RETURN");
+[712,736,764,788].forEach(function(x,k){d+=L(x,46,x,150,{id:"cwB"+k,"marker-end":"url(#ar)"});});
+d+=L(812,150,812,92,{id:"cwRet"})+L(1390,46,1390,505,{id:"cwCC","marker-end":"url(#ar)"})+L(1356,505,1356,92);
+
+/* stator ring and mill */
+d+=R(700,150,100,270,{fill:"url(#hx)",stroke:"#141414","stroke-width":1.4,id:"ring"})
+ +TL(750,438,"STATOR RING",{"text-anchor":"middle","font-size":9.5});
+d+=R(520,198,430,164,{id:"shell","stroke-width":1.6})
+ +P("M470 238L520 198V362L470 322Z")+P("M950 198L1000 238V322L950 362Z")
+ +R(420,252,50,56,{id:"trF"})+R(1000,252,50,56,{id:"trD"});
+d+=TL(735,286,"SAG MILL 800-ML-903",{"text-anchor":"middle","font-size":13,fill:"#141414","font-weight":"700"})
+ +TL(735,304,"11.10 m D × 6.10 m EGL / gearless 19.4 MW / EFM 17",{"text-anchor":"middle","font-size":9});
+for(var p=0;p<9;p++){d+=L(706+p*11,198,706+p*11,214)+L(706+p*11,346,706+p*11,362);}
+d+=R(925,172,22,26)+R(925,362,22,26)+TL(958,168,"BRAKE",{"font-size":8.5});
+d+=TL(410,236,"FEED TRUNNION",{"font-size":7.5})+TL(996,236,"DISCH. TRUNNION",{"font-size":7.5});
+
+/* feed, trommel and discharge */
+d+=P("M352 108H436L468 242H420Z")+TL(352,100,"FEED");
+d+=R(1050,240,110,80,{fill:"url(#mesh)",stroke:"#141414","stroke-width":1.3})
+ +TL(1105,233,"TROMMEL",{"text-anchor":"middle","font-size":9})
+ +P("M1058 320H1152L1136 400H1074Z")+R(1060,400,160,80,{id:"box"})
+ +TL(1140,445,"DISCHARGE BOX",{"text-anchor":"middle","font-size":9.5})
+ +L(1105,480,1105,529)+L(1175,480,1175,529)+C(1105,545,16)+C(1175,545,16)
+ +P("M1095 537L1115 545L1095 553Z",{fill:"#141414"})+P("M1165 537L1185 545L1165 553Z",{fill:"#141414"})
+ +TL(1140,578,"SLURRY PUMPS",{"text-anchor":"middle","font-size":8.5});
+d+=R(1240,505,160,110,{id:"ccroom"})+TL(1320,538,"CONVERTER",{"text-anchor":"middle","font-size":9.5})
+ +TL(1320,552,"ROOM",{"text-anchor":"middle","font-size":9.5});
+
+/* lubrication unit */
+d+=R(60,520,260,90,{id:"tank"})+L(150,520,150,610,{stroke:"#A7ADB0"})+L(235,520,235,610,{stroke:"#A7ADB0"})
+ +TL(105,626,"RETURN",{"text-anchor":"middle","font-size":8})
+ +TL(192,626,"PREPARATION",{"text-anchor":"middle","font-size":8})
+ +TL(277,626,"CONDITION.",{"text-anchor":"middle","font-size":8})
+ +TL(60,490,"MAIN BEARING LUBRICATION UNIT",{"font-size":9.5});
+d+=L(60,596,320,596,{id:"oilLvl",stroke:"#4A4F52","stroke-width":1.4,"stroke-dasharray":"5 3"});
+[[356,562],[356,596]].forEach(function(q,k){
+  d+=C(q[0],q[1],12,{id:"lp"+k})+P("M"+(q[0]-7)+" "+(q[1]-6)+"L"+(q[0]+8)+" "+q[1]+"L"+(q[0]-7)+" "+(q[1]+6)+"Z",{fill:"#141414"});});
+d+=TL(334,628,"LOW PRESSURE",{"font-size":8});
+[0,1,2,3].forEach(function(k){var y=606-k*33;
+  d+=C(408,y,12,{id:"hp"+k})+P("M401 "+(y-6)+"L416 "+y+"L401 "+(y+6)+"Z",{fill:"#141414",id:"hpf"+k});});
+d+=TL(430,500,"HIGH PRESSURE",{"font-size":8})+TL(430,510,"3 DUTY + 1 STANDBY",{"font-size":8});
+
+/* distribution to shoes and returns */
+d+=L(420,562,452,562,{id:"hdr0"})+L(452,562,452,448,{id:"hdr1","stroke-width":1.6})
+ +L(448,448,1028,448,{id:"hdr2","stroke-width":1.6})
+ +R(424,424,48,20,{id:"divF"})+R(1004,424,48,20,{id:"divD"})
+ +TL(448,418,"DIVIDER",{"text-anchor":"middle","font-size":7.5})
+ +TL(1028,418,"DIVIDER",{"text-anchor":"middle","font-size":7.5});
+[0,1,2,3].forEach(function(k){
+  d+=L(430+k*12,424,430+k*12,310,{id:"pF"+k,"marker-end":"url(#ar)"})
+   +L(1010+k*12,424,1010+k*12,310,{id:"pD"+k,"marker-end":"url(#ar)"});});
+d+=P("M414 300L386 300L386 496L80 496L80 520",{"stroke-dasharray":"6 4",stroke:"#4A4F52"})
+ +P("M1056 300L1086 300L1086 376L336 376L336 496L132 496L132 520",{"stroke-dasharray":"6 4",stroke:"#4A4F52"});
+d+=R(58,336,112,40,{id:"grease",fill:"#fff"})+TL(114,361,"GREASE SEAL",{"text-anchor":"middle","font-size":9})
+ +P("M170 352L250 352L250 318L414 318",{"stroke-dasharray":"2 3",stroke:"#4A4F52"});
+
+/* instruments */
+["ZI9373","PI9371","TI9372"].forEach(function(id,k){ d+=bub(292,196+k*76,id); });
+["ZI9376","PI9374","TI9375"].forEach(function(id,k){ d+=bub(1096+k*104,120,id); });
+d+=bub(104,434,"TI9381")+bub(200,434,"AI9383")+bub(296,434,"PI9384")+bub(392,434,"LI9382");
+d+=bub(500,566,"PI9380")+bub(586,512,"FI9385")+bub(586,592,"XI9386");
+d+=bub(560,104,"JI9301")+bub(916,104,"SI9302");
+d+=bub(700,512,"TI9310")+bub(820,512,"ZI9311")+bub(1320,452,"TI9312");
+
+/* legend */
+d+=R(1168,168,214,130,{stroke:"#A7ADB0",fill:"#fff"})
+ +TL(1180,186,"LEGEND",{"font-size":8.5,"font-weight":"700","letter-spacing":"1.2"})
+ +TL(1180,203,"Common tag prefix:  800-",{"font-size":9})
+ +C(1190,224,11)+TL(1208,228,"Configured in EFM 17",{"font-size":9})
+ +TL(1208,239,"(wN = KDI weight)",{"font-size":8,fill:"#8A9094"})
+ +C(1190,260,11,{"stroke-dasharray":"4 3"})+TL(1208,260,"Present on the asset,",{"font-size":9})
+ +TL(1208,272,"not in the EFM",{"font-size":9})
+ +TL(1180,290,"Subsystems taken from a reference P&ID",{"font-size":8,fill:"#8A9094"});
+
+svg.innerHTML=d;
+
+/* ─────────────── 6. CONTROLS ─────────────── */
+var ctl=document.getElementById("ctl"), scn=document.getElementById("scn");
+SLID.forEach(function(sl){
+  var w=document.createElement("div"); w.className="row";
+  var dmin=sl.min*sl.sc, dmax=sl.max*sl.sc, dst=sl.st*sl.sc;
+  w.innerHTML='<label><span>'+sl.t+'</span><span class="ent">'
+    +'<input type="number" class="num" id="n_'+sl.k+'" min="'+dmin+'" max="'+dmax+'" step="'+dst+'" '
+    +'title="range '+dmin+' to '+dmax+'">'
+    +'<i id="u_'+sl.k+'">'+sl.u+'</i></span></label>'
+    +'<input type="range" id="s_'+sl.k+'" min="'+sl.min+'" max="'+sl.max+'" step="'+sl.st+'">';
+  ctl.appendChild(w);
+  var rg=w.querySelector("input[type=range]"), nb=w.querySelector("input[type=number]");
+  rg.addEventListener("input",function(){ S[sl.k]=parseFloat(this.value); mark(-1); render(); });
+  function commit(){
+    var x=parseFloat(nb.value);
+    if(isNaN(x)){ nb.classList.remove("bad"); render(); return; }
+    var cl=Math.max(dmin,Math.min(dmax,x));
+    nb.classList.toggle("bad", cl!==x);
+    var v=Math.round((cl/sl.sc)/sl.st)*sl.st;
+    S[sl.k]=Math.max(sl.min,Math.min(sl.max,v));
+    mark(-1); render();
+    setTimeout(function(){ nb.classList.remove("bad"); },1000);
+  }
+  nb.addEventListener("change",commit);
+  nb.addEventListener("keydown",function(e){ if(e.key==="Enter"){ commit(); nb.blur(); } });
+});
+[["cc","Converter cooling"],["Tcold","Cold start"]].forEach(function(t){
+  var w=document.createElement("div"); w.className="row";
+  w.innerHTML='<label><span>'+t[1]+'</span></label><button id="s_'+t[0]+'" style="width:100%;'
+    +'font:600 10.5px inherit;padding:5px;border:1px solid var(--hair);background:#fff;cursor:pointer"></button>';
+  ctl.appendChild(w);
+  w.querySelector("button").addEventListener("click",function(){S[t[0]]=!S[t[0]];mark(-1);render();});
+});
+ESC.forEach(function(e,i){
+  var b=document.createElement("button"); b.textContent=e.n; if(i===0)b.className="wide";
+  b.addEventListener("click",function(){
+    for(var k in ESC[0].s) S[k]=ESC[0].s[k];
+    if(i>0) for(var k2 in e.s) S[k2]=e.s[k2];
+    mark(i); render();});
+  scn.appendChild(b);
+});
+function mark(i){var bs=scn.querySelectorAll("button");
+  for(var j=0;j<bs.length;j++) bs[j].className=(j===0?"wide":"")+(j===i?" on":"");}
+
+/* ─────────────── 7. RENDER ─────────────── */
+var kpis=document.getElementById("kpis"), seq=document.getElementById("seq");
+var COL=["#141414","#B45309","#FF000F"];
+function setB(id,txt,st){
+  var c=document.getElementById(id+"_c"),v=document.getElementById(id+"_v"),
+      t=document.getElementById(id+"_t"),r=document.getElementById(id+"_r");
+  if(!c)return;
+  v.textContent=txt;
+  c.setAttribute("stroke",COL[st]); c.setAttribute("stroke-width",st?1.9:1.2);
+  t.setAttribute("fill",COL[st]); v.setAttribute("fill",COL[st]);
+  r.setAttribute("stroke",st?COL[st]:"#D5D9DB");
+  r.setAttribute("fill",st?(st===2?"#FFF0F0":"#FDF6EC"):"#F4F5F3");
+}
+function pipe(id,st){
+  var e=document.getElementById(id); if(!e) return;
+  var w=e.getAttribute("data-w"); if(!w){ w=e.getAttribute("stroke-width")||"1.2"; e.setAttribute("data-w",w); }
+  e.setAttribute("stroke",COL[st]); e.setAttribute("stroke-width", st?Math.max(2,parseFloat(w)):parseFloat(w));
+}
+
+function render(){
+  SLID.forEach(function(sl){
+    document.getElementById("s_"+sl.k).value=S[sl.k];
+    var nb=document.getElementById("n_"+sl.k);
+    if(nb && document.activeElement!==nb) nb.value=(S[sl.k]*sl.sc).toFixed(sl.dec);
+    var u=document.getElementById("u_"+sl.k);
+    if(u) u.textContent = sl.iso ? ISO[S[sl.k]].c : sl.u;
+  });
+  var bcc=document.getElementById("s_cc");
+  bcc.textContent=S.cc?"IN SERVICE":"OUT OF SERVICE";
+  bcc.style.background=S.cc?"#fff":"#FF000F"; bcc.style.color=S.cc?"#141414":"#fff";
+  document.getElementById("s_Tcold").textContent=S.Tcold?"YES":"NO";
+
+  var o=model(S);
+
+  /* normalised deviation per variable (0 = nominal, 1 = alert) */
+  var X={};
+  X.ZI9373=(G.hRef-o.hF)/(G.hRef-G.hAlr);
+  X.ZI9376=(G.hRef-o.hD)/(G.hRef-G.hAlr);
+  X.PI9371=(o.pF-pRef*0.96)/(pRef*0.35);
+  X.PI9374=(o.pD-pRef)/(pRef*0.35);
+  X.TI9372=(o.TpF-50)/16;
+  X.TI9375=(o.TpD-52)/16;
+  X.TI9381=(o.Toil-46)/14;
+  X.AI9383=(10-o.lam)/5;
+  X.PI9380=(1-o.pSup/G.pHP)/0.28;
+  X.PI9384=(S.dp-0.22)/0.16;
+  X.LI9382=(85-S.lvl)/25;
+  X.JI9301=(o.P-o.Pcap*0.95)/(o.Pcap*0.05);
+  X.SI9302=0;
+  X.FI9385=(1-o.Qtot/(G.Qpump*G.nHPdes))/0.33;
+  X.XI9386=(G.nHPdes-S.nHP)/2;
+  X.TI9310=(o.Tsta-68)/14;
+  X.ZI9311=(Math.abs(o.gap-G.gapNom)-0.25)/0.45;
+  X.TI9312=(o.Tcc-44)/12;
+
+  var V={ZI9373:o.hF.toFixed(0),ZI9376:o.hD.toFixed(0),
+         PI9371:o.pF.toFixed(2),PI9374:o.pD.toFixed(2),
+         TI9372:o.TpF.toFixed(1),TI9375:o.TpD.toFixed(1),
+         TI9381:o.Toil.toFixed(1),AI9383:o.isoTxt,
+         PI9380:o.pSup.toFixed(0),PI9384:S.dp.toFixed(2),LI9382:S.lvl.toFixed(0),
+         JI9301:o.P.toFixed(2),SI9302:o.N.toFixed(2),
+         FI9385:o.Qtot.toFixed(0),XI9386:S.nHP.toFixed(0),
+         TI9310:o.Tsta.toFixed(0),ZI9311:o.gap.toFixed(2),TI9312:o.Tcc.toFixed(0)};
+
+  var KD={}, num=0;
+  TAGS.forEach(function(t){
+    KD[t.id]=kdiOf(X[t.id]||0);
+    setB(t.id, V[t.id]+(t.u?" "+t.u:""), bandOf(KD[t.id]));
+    if(t.cfg) num+=t.w*KD[t.id];
+  });
+  var FPI=WSUM?num/WSUM:100, bF=bandOf(FPI);
+
+  var bh=Math.max(bandOf(KD.ZI9373),bandOf(KD.ZI9376));
+  pipe("hdr0",bandOf(KD.PI9380)); pipe("hdr1",bandOf(KD.PI9380)); pipe("hdr2",bandOf(KD.FI9385));
+  [0,1,2,3].forEach(function(k){
+    pipe("pF"+k,bandOf(KD.ZI9373)); pipe("pD"+k,bandOf(KD.ZI9376));
+    var run=k<S.nHP, res=(k===3&&S.nHP===3);
+    var c=document.getElementById("hp"+k);
+    if(c){ c.setAttribute("stroke", run?"#141414":(res?"#8A9094":"#FF000F"));
+           c.setAttribute("stroke-dasharray", res?"4 3":""); }
+    var f=document.getElementById("hpf"+k);
+    if(f) f.setAttribute("fill", run?"#141414":(res?"#D5D9DB":"#fff"));
+    pipe("cwB"+k,k<S.nCool?bandOf(KD.TI9310):2);});
+  pipe("ring",bandOf(KD.TI9310)); pipe("cwCC",S.cc?0:2); pipe("ccroom",bandOf(KD.TI9312));
+  pipe("trF",bandOf(KD.ZI9373)); pipe("trD",bandOf(KD.ZI9376)); pipe("tank",bandOf(KD.LI9382));
+  var lv=document.getElementById("oilLvl");
+  if(lv){ var yy=610-0.9*S.lvl; lv.setAttribute('y1',yy); lv.setAttribute('y2',yy); }
+
+  var KP=[["FAILURE MODE FPI",FPI.toFixed(0),"/110",bF],
+          ["POWER",o.P.toFixed(2),"MW",bandOf(KD.JI9301)],
+          ["CHARGE",o.Mch.toFixed(0),"t",0],
+          ["MINIMUM FILM",o.hMin.toFixed(0),"µm",bh],
+          ["SHOE PRESSURE",Math.max(o.pF,o.pD).toFixed(2),"MPa",bandOf(KD.PI9374)],
+          ["OIL",o.Toil.toFixed(1),"°C",bandOf(KD.TI9381)],
+          ["FILM/PARTICLE",o.lam.toFixed(1),"—",bandOf(KD.AI9383)],
+          ["STATOR RING",o.Tsta.toFixed(0),"°C",bandOf(KD.TI9310)]];
+  kpis.innerHTML=KP.map(function(k,i){
+    return '<div class="kpi '+KC[k[3]]+(i===0?' hero':'')+'"><div class="k">'+k[0]+'</div>'
+      +'<div class="v">'+k[1]+' <span class="u">'+k[2]+'</span></div></div>';}).join("");
+
+  var ev=[];
+  if(bandOf(KD.XI9386)) ev.push([1,"<b>800-XI-9386</b> — "+S.nHP+" of 3 HP pumps running. This is the cause, not the symptom."]);
+  if(bandOf(KD.PI9380)) ev.push([1,"<b>800-PI-9380</b> — supply at "+o.pSup.toFixed(0)+" kPa."]);
+  if(bandOf(KD.FI9385)) ev.push([1,"<b>800-FI-9385</b> — flow "+o.Qtot.toFixed(0)+" L/min, "+(100*(1-o.Qtot/(G.Qpump*G.nHPdes))).toFixed(0)+" % below design."]);
+  if(Math.abs(S.split)>0.1) ev.push([1,"<b>Flow divider</b> off balance by "+(S.split*100).toFixed(0)+" %: one trunnion gets more flow than the other."]);
+  if(bandOf(KD.LI9382)) ev.push([1,"<b>800-LI-9382</b> — level at "+S.lvl+" %."]);
+  if(bandOf(KD.ZI9376)) ev.push([2,"<b>800-ZI-9376</b> (w10) — discharge film "+o.hD.toFixed(0)+" µm. Responds immediately to flow."]);
+  if(bandOf(KD.ZI9373)) ev.push([2,"<b>800-ZI-9373</b> (w2) — feed film "+o.hF.toFixed(0)+" µm."]);
+  if(bandOf(KD.AI9383)) ev.push([2,"<b>800-AI-9383</b> (w7) — film/particle ratio "+o.lam.toFixed(1)+". Below 5 there is three-body abrasion."+(o.bypass?" The filter is in bypass.":"")]);
+  if(bandOf(KD.PI9384)) ev.push([2,"<b>800-PI-9384</b> (w5) — filter ΔP "+S.dp.toFixed(2)+" MPa."]);
+  if(bandOf(KD.PI9374)) ev.push([3,"<b>800-PI-9374</b> (w6) — shoe pressure "+o.pD.toFixed(2)+" MPa. Load sharing settles after the film."]);
+  if(bandOf(KD.TI9381)) ev.push([4,"<b>800-TI-9381</b> (w1) — return oil "+o.Toil.toFixed(1)+" °C."]);
+  if(bandOf(KD.TI9375)) ev.push([4,"<b>800-TI-9375</b> (w7) — discharge shoe "+o.TpD.toFixed(1)+" °C. It arrives last: by the time you see it, the film has already dropped."]);
+  if(bandOf(KD.TI9310)) ev.push([5,"<b>800-TI-9310</b> — stator ring "+o.Tsta.toFixed(0)+" °C with "+S.nCool+" of 4 branches. Not in the EFM."]);
+  if(bandOf(KD.ZI9311)) ev.push([5,"<b>800-ZI-9311</b> — air gap "+o.gap.toFixed(2)+" mm ("+(o.grow>=0?"+":"")+o.grow.toFixed(2)+" mm from thermal growth). Not in the EFM."]);
+  if(!S.cc) ev.push([6,"<b>Converter without cooling</b>: available power limited to "+o.Pcap.toFixed(1)+" MW."]);
+  if(o.clip) ev.push([6,"<b>Demand clipped</b>: the mill asks for "+o.Pdem.toFixed(2)+" MW and "+o.Pcap.toFixed(1)+" MW are available."]);
+  ev.sort(function(x,y){return x[0]-y[0];});
+  seq.innerHTML = ev.length
+    ? '<div style="font-size:10.5px;margin-bottom:5px">FPI <b>'+FPI.toFixed(0)+'</b> — '
+      +(bF===0?"healthy":bF===1?"warning":"alert")+'</div><ol>'
+      +ev.map(function(e){return "<li>"+e[1]+"</li>";}).join("")+"</ol>"
+    : '<div class="none">FPI '+FPI.toFixed(0)+'. All EFM variables within band.</div>';
+}
+
+document.getElementById("note").innerHTML =
+ '<b>Model.</b> Power from the Austin correlation P = K\u00B7D<sup>2.5</sup>\u00B7L\u00B7\u03C1<sub>c</sub>\u00B7J\u00B7(1\u2212 0.937 J)\u00B7\u03C6<sub>c</sub>\u00B7[1\u2212 0.1/2<sup>(9\u221210\u03C6c)</sup>], '
+ +'K calibrated to 17.50 MW at the design point (J = 26 %, balls 14 %, 73.3 % N<sub>c</sub>); N<sub>c</sub> = 42.3/\u221A(D\u2212d) = '+Nc.toFixed(2)+' rpm; '
+ +'empty rotating mass '+G.M0+' t. Hydrostatic film from the balance of a compensated pocket, h \u221D (Q\u00B7\u03BC/p)<sup>1/3</sup>, referred to '+G.hRef+' \u00B5m at design; '
+ +'\u03BC(T) = \u03BC<sub>40</sub>\u00B7e<sup>\u22120.045(T\u221240)</sup> for ISO VG 320. Load split 48/52 between feed and discharge trunnions over '+G.nShoe+' shoes of '+G.Ashoe.toFixed(2)+' m\u00B2 each. '
+ +'The <b>FPI</b> combines the KDIs of the '+TAGS.filter(function(t){return t.cfg;}).length+' variables configured in EFM 17 with their real weights '
+ +'(\u03A3w = '+WSUM+'); KDI = 100 at nominal and 20 at the alert threshold. '
+ +'<b>Assumptions to confirm:</b> number and area of shoes, flow and pressure of the high-pressure unit, and the physical existence of the tags drawn with a dashed outline. '
+ +'<b>Not modelled:</b> internal classification, pebble crushing, liner wear, start-up dynamics or the real drive protection. '
+ +'Eccentricity from a film difference is of micrometre order against a 16 mm air gap: in normal operation the film does not move the air gap; '
+ +'what moves it is losing a bearing.';
+
+mark(0); render();
+})();
+</script>
+</body>
+</html>
