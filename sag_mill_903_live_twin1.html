@@ -1,0 +1,816 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SAG Mill 800-ML-903 Live Twin</title>
+<style>
+:root{
+  --bg:#0C1317; --pan:#111A20; --pan2:#16222A; --line:#2A3B46; --line2:#1D2B34;
+  --ink:#E6EEF2; --ink2:#8FA6B2; --ink3:#5E7683;
+  --oil:#E8A33C; --oilr:#8A6425; --cw:#3FB8DC; --pulp:#B08968; --pwr:#FF4D57;
+  --ok:#35C08A; --wa:#F2B33D; --al:#FF4D57;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
+  font-family:"ABBvoice","Segoe UI",system-ui,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+.sheet{height:100%;padding:8px;display:flex;flex-direction:column;overflow:hidden}
+.frame{flex:1;min-height:0;display:flex;flex-direction:column;background:var(--pan);
+  border:1px solid var(--line)}
+.mast{flex:none;display:flex;justify-content:space-between;align-items:flex-end;
+  padding:9px 14px 8px;border-bottom:1px solid var(--line)}
+.mast h1{margin:0;font-size:18px;font-weight:700}
+.mast .sub{font-size:11.6px;color:var(--ink2);margin-top:2px}
+.mast .rt{text-align:right;font:600 9.8px/1.55 "Consolas",ui-monospace,monospace;
+  color:var(--ink3);letter-spacing:.09em}
+
+.tbar{flex:none;display:flex;align-items:center;gap:10px;padding:7px 14px;
+  border-bottom:1px solid var(--line);background:var(--pan2)}
+.seg{display:flex;border:1px solid var(--line)}
+.seg button{font:700 10.4px/1 inherit;letter-spacing:.08em;color:var(--ink2);background:transparent;
+  border:0;padding:8px 13px;cursor:pointer}
+.seg button.on{background:var(--ink);color:var(--bg)}
+.tbtn{font:700 10.4px/1 inherit;letter-spacing:.06em;color:var(--ink);background:transparent;
+  border:1px solid var(--line);padding:8px 12px;cursor:pointer;min-width:70px}
+.tbtn:hover{border-color:var(--ink3)}
+.tbtn.live{border-color:var(--ok);color:var(--ok)}
+#scrub{flex:1;min-width:120px}
+.clk{font:700 12.4px/1 "Consolas",ui-monospace,monospace;color:var(--ink);white-space:nowrap}
+.phz{display:inline-flex;align-items:center;gap:4px}
+.phz input{width:58px;text-align:right;background:var(--pan);color:var(--ink);
+  font:700 11.4px/1.3 "Consolas",ui-monospace,monospace;border:1px solid var(--line);padding:4px 5px}
+.off input:focus{outline:none;border-color:var(--ok)}
+.phz i{font-style:normal;font:600 9px/1 "Consolas",ui-monospace,monospace;color:var(--ink3)}
+.clk small{color:var(--ink3);font-weight:400}
+
+.body{flex:1;min-height:0;display:flex}
+.draw{flex:1;min-width:0;min-height:0;border-right:1px solid var(--line)}
+.draw svg{display:block;width:100%;height:100%}
+.rail{width:352px;flex:none;min-height:0;display:flex;flex-direction:column;background:var(--pan2)}
+.rail h2{margin:0;padding:9px 14px 8px;font:700 9.6px/1.4 "Consolas",ui-monospace,monospace;
+  letter-spacing:.14em;color:var(--ink3);border-bottom:1px solid var(--line2)}
+.scn{flex:none;padding:9px 11px;display:grid;grid-template-columns:1fr 1fr;gap:5px;
+  border-bottom:1px solid var(--line2)}
+.scn button{font:600 10.6px/1.25 inherit;color:var(--ink2);background:transparent;
+  border:1px solid var(--line);padding:7px 8px;text-align:left;cursor:pointer}
+.scn button:hover{border-color:var(--ink3);color:var(--ink)}
+.scn button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.scn button.wide{grid-column:1/-1}
+.ctl{flex:1;min-height:0;overflow:auto;padding:10px 14px 12px}
+.ctl.off{opacity:.62}
+.row{margin-bottom:9px}
+.row label{display:flex;justify-content:space-between;align-items:center;gap:8px;
+  font-size:11.4px;color:var(--ink2);margin-bottom:4px}
+.row label>span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ent{flex:none}
+.ent{display:inline-flex;align-items:center;gap:5px}
+.num{width:68px;text-align:right;background:var(--pan);color:var(--ink);
+  font:700 12.6px/1.35 "Consolas",ui-monospace,monospace;border:1px solid var(--line);padding:3px 5px}
+.num:focus{outline:none;border-color:var(--ok)}
+.num.bad{border-color:var(--al)}
+.ent i{font-style:normal;font:600 10.2px/1 "Consolas",ui-monospace,monospace;
+  color:var(--ink3);min-width:44px}
+input[type=range]{width:100%;height:16px;-webkit-appearance:none;background:transparent;margin:0}
+input[type=range]::-webkit-slider-runnable-track{height:2px;background:var(--line)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:10px;height:10px;
+  background:var(--ink);margin-top:-4px;cursor:pointer}
+input[type=range]::-moz-range-track{height:2px;background:var(--line)}
+input[type=range]::-moz-range-thumb{width:10px;height:10px;background:var(--ink);border:0;cursor:pointer}
+.seq{flex:none;border-top:1px solid var(--line2);padding:10px 14px 12px;max-height:196px;overflow:auto}
+.seq ol{margin:0;padding-left:15px}
+.seq li{font-size:11.3px;line-height:1.5;margin-bottom:4px;color:var(--ink2)}
+.seq li b{color:var(--ink)}
+.seq .none{font-size:11.3px;color:var(--ok)}
+.fpiline{font-size:11.6px;margin-bottom:7px;color:var(--ink2)}
+
+.kpis{flex:none;display:flex;border-top:1px solid var(--line)}
+.kpi{flex:1;padding:9px 13px;border-right:1px solid var(--line2)}
+.kpi:last-child{border-right:0}
+.kpi .k{font:600 9.4px/1.4 "Consolas",ui-monospace,monospace;letter-spacing:.09em;color:var(--ink3)}
+.kpi .v{font:700 22px/1.14 "Consolas",ui-monospace,monospace;margin-top:3px}
+.kpi .u{font-size:11px;color:var(--ink3);font-weight:400}
+.kpi.w .v{color:var(--wa)} .kpi.a .v{color:var(--al)}
+.kpi.hero{background:#080D10;border-right:1px solid #2A3B46}.kpi.hero .v{color:var(--ok)}
+.note{flex:none;border-top:1px solid var(--line);padding:9px 15px 10px;font-size:10.2px;
+  line-height:1.52;color:var(--ink3);max-height:104px;overflow:auto}
+.note b{color:var(--ink2)}
+text{font-family:"Consolas",ui-monospace,monospace}
+.lbl{font-family:"ABBvoice","Segoe UI",system-ui,Arial,sans-serif}
+.anim{stroke-dasharray:9 7;animation:fl 1.1s linear infinite}
+@keyframes fl{to{stroke-dashoffset:-16}}
+.stop{animation:none;stroke-dasharray:none}
+@media (max-width:980px){.body{flex-direction:column}.rail{width:auto;border-top:1px solid var(--line)}
+ .draw{border-right:0;min-height:380px}.kpi{min-width:33%}.kpis{flex-wrap:wrap}}
+</style>
+</head>
+<body>
+<div class="sheet"><div class="frame">
+
+<div class="mast">
+  <div>
+    <h1>SAG mill 800-ML-903 &mdash; live operational twin</h1>
+    <div class="sub">EQI 214 &nbsp;&middot;&nbsp; EFM 17 &ldquo;SAG Mill 903 Integrated Diagnostic&rdquo; &nbsp;&middot;&nbsp; failure mode <i>Bearing Lubrication Failure</i> (1 of 3)</div>
+  </div>
+  <div class="rt">LIVE TWIN &nbsp;/&nbsp; DWG CA-SAG-GMD-DT-003<br>
+    REV. C &nbsp;/&nbsp; EFM 17 TAGS &nbsp;/&nbsp; SIMULATOR REPLAY</div>
+</div>
+
+<div class="tbar">
+  <div class="seg" id="mode">
+    <button data-m="live" class="on">LIVE REPLAY</button>
+    <button data-m="what">WHAT-IF</button>
+  </div>
+  <button class="tbtn live" id="play">&#9654; PLAY</button>
+  <button class="tbtn" id="spd">10 min/s</button>
+  <button class="tbtn live" id="sync">PLANT CLOCK</button>
+  <span class="phz"><input type="number" id="poff" step="0.5" value="0" title="phase trim, hours"><i>h</i></span>
+  <input type="range" id="scrub" min="0" max="8064" step="1" value="0">
+  <div class="clk" id="clk"></div>
+</div>
+
+<div class="body">
+  <div class="draw"><svg id="pid" viewBox="0 0 1420 660" preserveAspectRatio="xMidYMid meet"></svg></div>
+  <div class="rail">
+    <h2>WHAT-IF SCENARIOS</h2>
+    <div class="scn" id="scn"></div>
+    <h2 id="ctlh">INPUT VARIABLES</h2>
+    <div class="ctl" id="ctl"></div>
+    <h2>ORDER OF APPEARANCE</h2>
+    <div class="seq" id="seq"></div>
+  </div>
+</div>
+
+<div class="kpis" id="kpis"></div>
+<div class="note" id="note"></div>
+</div></div>
+<script>
+(function(){
+"use strict";
+
+/* ══════════ 1. ASSET ══════════ */
+var G={ D:11.10,L:6.10,db:0.14,Pnom:19.4,Pdis:17.50,M0:900,rhoB:4.40,rhoR:1.75,
+        nShoe:4,Ashoe:0.62,nHPdes:3 };
+var Vm=Math.PI/4*G.D*G.D*G.L, Nc=42.3/Math.sqrt(G.D-G.db), Aj=G.nShoe*G.Ashoe;
+var DES={Jc:0.26,Jb:0.14,phi:0.733};
+function rhoC(a,b){var f=b/a;return f*G.rhoB+(1-f)*G.rhoR;}
+function austin(a,b,p){var r=rhoC(a,b);
+  return Math.pow(G.D,2.5)*G.L*r*a*(1-0.937*a)*p*(1-0.1/Math.pow(2,9-10*p));}
+var K=G.Pdis/austin(DES.Jc,DES.Jb,DES.phi);
+
+/* ══════════ 2. EFM 17 TAGS — real scales and thresholds ══════════ */
+/* hi = healthy value, al = alarm value, w = KDI weight, cfg = configured in EFM 17 */
+var TAGS=[
+ {id:"ZI9376",t:"800-ZI-9376",d:"Oil film, discharge trunnion",u:"mm", dec:3,hi:0.170,al:0.080,w:10,cfg:1},
+ {id:"TI9375",t:"800-TI-9375",d:"Discharge shoe temperature", u:"°C",dec:1,hi:53.0, al:82.0, w:7, cfg:1},
+ {id:"AI9383",t:"800-AI-9383",d:"Oil cleanliness ISO 4406",   u:"code",dec:1,hi:16.0, al:23.0, w:7, cfg:1},
+ {id:"PI9374",t:"800-PI-9374",d:"Discharge shoe pressure",    u:"kPa",dec:0,hi:18200,al:14500,w:6, cfg:1},
+ {id:"PI9380",t:"800-PI-9380",d:"Lube supply pressure",       u:"kPa",dec:0,hi:560,  al:400,  w:5, cfg:1},
+ {id:"PI9384",t:"800-PI-9384",d:"Filter ΔP",             u:"kPa",dec:0,hi:60,   al:180,  w:5, cfg:1},
+ {id:"ZI9373",t:"800-ZI-9373",d:"Oil film, feed trunnion",    u:"mm", dec:3,hi:0.180,al:0.080,w:2, cfg:1},
+ {id:"LI9382",t:"800-LI-9382",d:"Reservoir level",            u:"%",  dec:0,hi:78,   al:30,   w:2, cfg:1},
+ {id:"TI9372",t:"800-TI-9372",d:"Feed shoe temperature",      u:"°C",dec:1,hi:52.0, al:82.0, w:1, cfg:1},
+ {id:"TI9381",t:"800-TI-9381",d:"Oil temperature",            u:"°C",dec:1,hi:44.0, al:59.0, w:1, cfg:1},
+ {id:"PI9371",t:"800-PI-9371",d:"Feed shoe pressure",         u:"kPa",dec:0,hi:18470,al:14500,w:0, cfg:1},
+ /* present on the asset, absent from the simulator and from EFM 17 */
+ {id:"WI9303",t:"800-WI-9303",d:"Feed rate to SAG",         u:"t/h",dec:0,hi:2333,al:1600,w:0,cfg:0},
+ {id:"JI9301",t:"800-JI-9301",d:"Drive power",                u:"MW", dec:2,hi:17.5, al:19.4, w:0, cfg:0},
+ {id:"SI9302",t:"800-SI-9302",d:"Mill speed",                 u:"rpm",dec:2,hi:9.37, al:12.0, w:0, cfg:0},
+ {id:"FI9385",t:"800-FI-9385",d:"High-pressure flow",         u:"L/min",dec:0,hi:720,al:480, w:0, cfg:0},
+ {id:"XI9386",t:"800-XI-9386",d:"HP pumps running",           u:"of 3",dec:0,hi:3,   al:1,   w:0, cfg:0},
+ {id:"TI9310",t:"800-TI-9310",d:"Stator ring",                u:"°C",dec:0,hi:61, al:80, w:0, cfg:0},
+ {id:"ZI9311",t:"800-ZI-9311",d:"Drive air gap",              u:"mm", dec:2,hi:16.0, al:15.3, w:0, cfg:0},
+ {id:"TI9312",t:"800-TI-9312",d:"Converter room",             u:"°C",dec:0,hi:34, al:50, w:0, cfg:0}
+];
+var TM={}; TAGS.forEach(function(t){TM[t.id]=t;});
+var WSUM=TAGS.reduce(function(a,t){return a+(t.cfg?t.w:0);},0);
+var SIMSET={ZI9376:1,TI9375:1,AI9383:1,PI9374:1,PI9380:1,PI9384:1,ZI9373:1,LI9382:1,TI9372:1,TI9381:1,PI9371:1};
+
+/* ══════════ 3. SIMULATOR REPLAY ══════════ */
+/* The plant simulator runs 258 tags at one minute, 8 065 samples per tag
+   (5 d 14 h 25 min), and restarts at the end of the sequence.
+   Anchored to the simulator file for every tag: the value at the start, at mid-cycle and
+   at the end, and the minimum and maximum reached over the whole cycle. The path between
+   those anchors is reconstructed with an operational rhythm (daily, shift and short cycle)
+   whose amplitude narrows as each variable stiffens, plus minute noise, and is then
+   clamped to the recorded minimum and maximum.                                            */
+var CYC=8065;
+function nz(i,k){var x=Math.sin(i*12.9898+k*78.233)*43758.5453; return (x-Math.floor(x))*2-1;}
+function osc(i,k){     /* operational rhythm: daily, shift and short cycle.
+                          Zero phase, so every tag starts exactly on its recorded value,
+                          and distinct periods per tag, so they drift apart as in a plant. */
+  var s = 0.55*Math.sin(2*Math.PI*i/(1440+37*k))
+        + 0.28*Math.sin(2*Math.PI*i/( 487+23*k))
+        + 0.17*Math.sin(2*Math.PI*i/( 149+11*k));
+  s *= 1.38;                       /* so the recorded extremes are actually reached */
+  return s<-1?-1:(s>1?1:s);
+}
+function cl(v,lo,hi){ return v<lo?lo:(v>hi?hi:v); }
+function ramp(u,a,b,e){ if(u<=a)return 0; if(u>=b)return 1; return Math.pow((u-a)/(b-a),e); }
+
+function replay(i){
+  var u=i/CYC, o={};
+  /* --- lubrication unit: degrades monotonically, variability narrows as it clogs --- */
+  o.PI9384 = cl( 62 + 118*Math.pow(u,1.55) + 25.0*(1-0.60*u)*osc(i,1) + 2.6*nz(i,1), 43.5, 190.6);
+  o.LI9382 = cl( 76 -  41*Math.pow(u,1.20) + 12.0*(1-0.60*u)*osc(i,2) + 1.0*nz(i,2), 32.1,  84.7);
+  o.PI9380 = cl(575 - 165*Math.pow(u,1.30) + 41.0*(1-0.40*u)*osc(i,3) + 5.0*nz(i,3),372.6, 615.8);
+  o.AI9383 = cl( 16 +   6*Math.pow(u,1.45) +  1.60*(1-0.05*u)*osc(i,4)+ 0.18*nz(i,4), 14.7,  23.2);
+  o.TI9381 = cl(44.2                       +  7.00*osc(i,5)           + 1.10*nz(i,5), 36.8,  51.6);
+  /* --- discharge bearing: late onset, film first, pressure next, temperature last --- */
+  var rf=ramp(u,0.62,1.00,1.75), rp=ramp(u,0.64,1.00,1.60), rt=ramp(u,0.70,1.00,1.45);
+  o.ZI9376 = 0.170 - 0.130*rf + 0.0045*(1-0.60*rf)*osc(i,6) + 0.0016*nz(i,6);
+  o.PI9374 = 18214 - 3630*rp  +   95*(1-0.60*rp)*osc(i,7)   +   22*nz(i,7);
+  o.TI9375 =  53.1 +  33.8*rt +  0.85*(1-0.50*rt)*osc(i,8)  + 0.28*nz(i,8);
+  /* --- feed bearing: healthy control, operational variation only --- */
+  o.ZI9373 = 0.180 + 0.0026*osc(i,9)  + 0.0009*nz(i,9);
+  o.PI9371 = 18470 +     40*osc(i,10) +     12*nz(i,10);
+  o.TI9372 =  51.9 +   0.32*osc(i,11) +   0.12*nz(i,11);
+  return o;
+}
+
+/* ══════════ 4. WHAT-IF PHYSICS ══════════ */
+var Mch0=Vm*DES.Jc*rhoC(DES.Jc,DES.Jb), Wdes=(G.M0+Mch0)*9.81/1000, pRef=Wdes*0.52/Aj;
+function physics(S){
+  var o={}, rc=rhoC(S.Jc,S.Jb);
+  o.N=S.phi*Nc; o.Mch=Vm*S.Jc*rc; o.W=(G.M0+o.Mch)*9.81/1000;
+  o.Pcap=S.cc?G.Pnom:G.Pnom*0.70;
+  o.Pdem=K*austin(S.Jc,S.Jb,S.phi); o.P=Math.min(o.Pdem,o.Pcap); o.clip=o.Pdem>o.Pcap;
+  o.pF=o.W*0.48/Aj; o.pD=o.W*0.52/Aj;
+  var T=38+20*(1-S.cool)+11*(o.pD/pRef-1)+8*(S.phi/DES.phi-1)+(S.Tcold?-22:0);
+  o.Toil=Math.max(12,Math.min(85,T));
+  var mu=Math.exp(-0.045*(o.Toil-40));
+  o.Q=240*S.nHP; var QF=o.Q*0.5*(1+S.split), QD=o.Q*0.5*(1-S.split), Qr=360;
+  function film(h0,Q,p){ return Q<=0?0: h0*Math.pow((Q/Qr)*mu*(pRef/p),1/3); }
+  var hF=film(0.180,QF,o.pF), hD=film(0.170,QD,o.pD);
+  var loss=Math.pow(o.P/G.Pdis,2);
+  o.Tsta=S.Twin+(S.nCool>0?8*loss*(4/S.nCool):60)+25;
+  o.gap=16.0+12e-6*5.55*1000*(o.Tsta-61);
+  var V={};
+  V.ZI9373=hF; V.ZI9376=hD;
+  V.PI9371=18470*(0.60+0.40*(S.nHP/3))*(0.92+0.08*hF/0.180);
+  V.PI9374=18200*(0.60+0.40*(S.nHP/3))*(0.92+0.08*hD/0.170);
+  V.TI9381=o.Toil;
+  V.TI9372=o.Toil+8+40*Math.max(0,(0.180/Math.max(hF,0.001))-1);
+  V.TI9375=o.Toil+9+40*Math.max(0,(0.170/Math.max(hD,0.001))-1);
+  V.PI9380=575-150*Math.max(0,Math.min(1,(S.dp-60)/120))-60*Math.max(0,Math.min(1,(78-S.lvl)/48)); V.PI9384=S.dp; V.LI9382=S.lvl; V.AI9383=S.iso;
+  V.WI9303=o.P*1000/7.5; V.JI9301=o.P; V.SI9302=o.N; V.FI9385=o.Q; V.XI9386=S.nHP;
+  V.TI9310=o.Tsta; V.ZI9311=o.gap; V.TI9312=S.cc?34:56;
+  o.V=V; return o;
+}
+
+/* ══════════ 5. KDI, HEALTH INDEX, FPI ══════════ */
+/* KDI_i : per-parameter health as the EFM reports it, 100 at the healthy reference and
+           20 at the alarm value, up to 110 when better than reference.
+   HI    : asset health index, 0-100, weighted mean of the configured KDIs, with the four
+           bands of the Genix gauge: 0-20, 20-50, 50-85, 85-100.
+   FPI   : failure probability of the failure mode, 0-100, higher is worse. Transparent
+           proxy 100-HI; the deployed model derives its own from the clustering.          */
+function devOf(t,v){ if(v==null) return null; return (v-t.hi)/(t.al-t.hi); }
+function kdiOf(x){ if(x==null) return null;
+  if(x<0) return Math.min(110,100-18*x);
+  return Math.max(0,Math.min(110,100-80*Math.min(x,1)-30*Math.max(0,x-1))); }
+function bandHI(h){ return h>=85?0:(h>=50?1:(h>=20?2:3)); }
+function bandOf(k){ return k==null?-1:(k>=85?0:(k>=20?1:2)); }
+var HIC=["#35C08A","#F2B33D","#E07B2E","#FF4D57"];
+var HIN=["Healthy","Fair","Degraded","Critical"];
+
+/* first minute of the cycle at which each configured tag reaches its alarm */
+var ALARM_AT={};
+TAGS.forEach(function(t){
+  if(!t.cfg||!SIMSET[t.id]) return;
+  ALARM_AT[t.id]=null;
+  for(var i=0;i<CYC;i+=5){ if(devOf(t,replay(i)[t.id])>=1){ ALARM_AT[t.id]=i; break; } }
+});
+function leadTime(i0){
+  var best=null, past=null;
+  for(var id in ALARM_AT){
+    var a=ALARM_AT[id]; if(a===null) continue;
+    if(a<=i0){ if(!past) past=id; continue; }
+    var h=(a-i0)/60; if(!best||h<best.h) best={h:h,id:id};
+  }
+  return best?best:(past?{h:0,id:past,past:true}:null);
+}
+
+/* ══════════ 6. DRAWING ══════════ */
+var svg=document.getElementById("pid");
+var EQ="#4A6271", LB="#8FA6B2", DIM="#33495699";
+function at(o){var s="";for(var k in o)s+=" "+k+'="'+o[k]+'"';return s;}
+function L(x1,y1,x2,y2,o){return "<line"+at(Object.assign({x1:x1,y1:y1,x2:x2,y2:y2,stroke:EQ,"stroke-width":1.2},o||{}))+"/>";}
+function P(d,o){return "<path"+at(Object.assign({d:d,fill:"none",stroke:EQ,"stroke-width":1.2},o||{}))+"/>";}
+function R(x,y,w,h,o){return "<rect"+at(Object.assign({x:x,y:y,width:w,height:h,fill:"none",stroke:EQ,"stroke-width":1.2},o||{}))+"/>";}
+function C(x,y,r,o){return "<circle"+at(Object.assign({cx:x,cy:y,r:r,fill:"none",stroke:EQ,"stroke-width":1.2},o||{}))+"/>";}
+function T(x,y,s,o){return "<text"+at(Object.assign({x:x,y:y,"font-size":10,fill:LB},o||{}))+">"+s+"</text>";}
+function TL(x,y,s,o){return T(x,y,s,Object.assign({class:"lbl","font-size":10.3,fill:LB},o||{}));}
+
+function bub(x,y,id){
+  var t=TM[id], p=t.t.split("-"), le=p[1], nu=p[2], sim=!!SIMSET[id];
+  var s=C(x,y,17,{id:id+"_c","stroke-dasharray":t.cfg?"":"4 3",fill:"#0E171C"})
+   +T(x,y-3,le,{"text-anchor":"middle","font-size":9.5,"font-weight":"700",id:id+"_t",fill:"#D7E3E9"})
+   +T(x,y+9,nu,{"text-anchor":"middle","font-size":8.5,fill:"#6E8794"})
+   +R(x-48,y+20,96,19,{fill:"#0A1114",stroke:"#2A3B46","stroke-width":.9,id:id+"_r"})
+   +T(x-44,y+33,"—",{"font-size":10.2,"font-weight":"700",id:id+"_v",fill:"#D7E3E9"});
+  if(sim) s+='<polyline id="'+id+'_s" fill="none" stroke="#5E7683" stroke-width="1.1" points=""/>';
+  if(t.cfg&&t.w>0) s+=T(x+21,y-11,"w"+t.w,{"font-size":8,fill:"#55707E","font-weight":"700"});
+  if(t.cfg) s+=T(x+21,y+10,"KDI —",{"font-size":8,fill:"#55707E","font-weight":"700",id:id+"_k"});
+  return s;
+}
+
+var d='<defs>'
+ +'<pattern id="hx" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">'
+ +'<line x1="0" y1="0" x2="0" y2="7" stroke="#2E4552" stroke-width="1.1"/></pattern>'
+ +'<pattern id="mesh" width="6" height="6" patternUnits="userSpaceOnUse">'
+ +'<path d="M0 0H6M0 0V6" stroke="#2E4552" stroke-width=".8"/></pattern>'
+ +'<marker id="ar" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">'
+ +'<path d="M0 0L7 3.5L0 7z" fill="#5E7683"/></marker>'
+ +'<linearGradient id="gSt" x1="0" y1="0" x2="0" y2="1">'
+  +'<stop offset="0" stop-color="#47606F"/><stop offset=".16" stop-color="#9DBACB"/>'
+  +'<stop offset=".40" stop-color="#5A7686"/><stop offset=".74" stop-color="#2B424F"/>'
+  +'<stop offset="1" stop-color="#16242C"/></linearGradient>'
+ +'<linearGradient id="gHd" x1="0" y1="0" x2="0" y2="1">'
+  +'<stop offset="0" stop-color="#3E5665"/><stop offset=".18" stop-color="#86A2B2"/>'
+  +'<stop offset=".48" stop-color="#4A6474"/><stop offset="1" stop-color="#15222A"/></linearGradient>'
+ +'<linearGradient id="gRg" x1="0" y1="0" x2="0" y2="1">'
+  +'<stop offset="0" stop-color="#6E8A9B"/><stop offset=".10" stop-color="#C2D7E3"/>'
+  +'<stop offset=".34" stop-color="#5E7C8D"/><stop offset=".66" stop-color="#8FAAB9"/>'
+  +'<stop offset="1" stop-color="#22343E"/></linearGradient>'
+ +'<linearGradient id="gTr" x1="0" y1="0" x2="0" y2="1">'
+  +'<stop offset="0" stop-color="#435B69"/><stop offset=".2" stop-color="#8FAABA"/>'
+  +'<stop offset="1" stop-color="#1A2A33"/></linearGradient>'
+ +'<radialGradient id="gSd" cx=".5" cy=".5" r=".5">'
+  +'<stop offset="0" stop-color="#000000" stop-opacity=".55"/>'
+  +'<stop offset="1" stop-color="#000000" stop-opacity="0"/></radialGradient>'
+ +'</defs>';
+
+for(var i=1;i<=8;i++){var gx=i*1420/8;
+  d+=L(gx,0,gx,9,{stroke:DIM,"stroke-width":.8})+L(gx,651,gx,660,{stroke:DIM,"stroke-width":.8})
+   +T(gx-1420/16,9,String(i),{"text-anchor":"middle","font-size":8,fill:"#3A505C"});}
+"ABCDEF".split("").forEach(function(ch,k){var gy=(k+1)*660/6;
+  d+=L(0,gy,9,gy,{stroke:DIM,"stroke-width":.8})+L(1411,gy,1420,gy,{stroke:DIM,"stroke-width":.8})
+   +T(6,gy-55+3,ch,{"text-anchor":"middle","font-size":8,fill:"#3A505C"});});
+
+/* cooling water */
+var CW="#3FB8DC";
+d+=L(636,46,1400,46,{id:"cwS",stroke:CW,"stroke-width":1.7,class:"anim"})
+ +L(636,92,1400,92,{id:"cwR",stroke:"#2A7A91","stroke-width":1.5})
+ +TL(642,38,"COOLING WATER — SUPPLY",{fill:"#6FC9E3"})+TL(642,112,"RETURN",{fill:"#4C8FA3"});
+[712,736,764,788].forEach(function(x,k){
+  d+=L(x,46,x,150,{id:"cwB"+k,stroke:CW,"stroke-width":1.4,class:"anim","marker-end":"url(#ar)"});});
+d+=L(812,150,812,92,{stroke:"#2A7A91"})
+ +L(1390,46,1390,505,{id:"cwCC",stroke:CW,"stroke-width":1.4,class:"anim","marker-end":"url(#ar)"})
+ +L(1356,505,1356,92,{stroke:"#2A7A91"});
+
+/* stator ring and mill */
+d+='<ellipse cx="735" cy="386" rx="312" ry="15" fill="url(#gSd)"/>';
+/* trunnions */
+d+=R(420,252,50,56,{id:"trF",fill:"url(#gTr)",stroke:"#6A8796","stroke-width":1.2})
+ +'<ellipse cx="420" cy="280" rx="8" ry="28" fill="#24363F" stroke="#6A8796" stroke-width="1"/>'
+ +R(1000,252,50,56,{id:"trD",fill:"url(#gTr)",stroke:"#6A8796","stroke-width":1.2})
+ +'<ellipse cx="1050" cy="280" rx="8" ry="28" fill="#24363F" stroke="#6A8796" stroke-width="1"/>';
+/* conical heads */
+d+=P("M470 238L520 198V362L470 322Z",{fill:"url(#gHd)",stroke:"#6A8796","stroke-width":1.3})
+ +P("M1000 238L950 198V362L1000 322Z",{fill:"url(#gHd)",stroke:"#6A8796","stroke-width":1.3});
+/* shell */
+d+=R(520,198,430,164,{id:"shell",fill:"url(#gSt)",stroke:"#8AA6B5","stroke-width":1.5})
+ +'<rect x="520" y="203" width="430" height="7" fill="#DCEAF2" opacity=".20"/>'
+ +'<rect x="520" y="348" width="430" height="11" fill="#000000" opacity=".26"/>';
+/* rotor poles, then the stator ring over them */
+for(var p=0;p<9;p++){ var px=706+p*11;
+  d+='<rect x="'+px+'" y="197" width="4" height="18" fill="#FF4D57" opacity=".92"/>'
+   +'<rect x="'+px+'" y="345" width="4" height="18" fill="#FF4D57" opacity=".92"/>'; }
+d+=R(700,150,100,270,{fill:"url(#gRg)",stroke:"#9BB8C8","stroke-width":1.4,id:"ring",opacity:".90"})
+ +'<rect x="700" y="196" width="100" height="3" fill="#FF4D57" opacity=".55"/>'
+ +'<rect x="700" y="361" width="100" height="3" fill="#FF4D57" opacity=".55"/>' 
+ +'<rect x="700" y="156" width="100" height="7" fill="#E4F0F7" opacity=".26"/>'
+ +'<rect x="700" y="404" width="100" height="11" fill="#000000" opacity=".30"/>'
+ +'<rect x="694" y="150" width="7" height="270" fill="#2A3F4B" stroke="#6A8796" stroke-width=".9"/>'
+ +'<rect x="799" y="150" width="7" height="270" fill="#2A3F4B" stroke="#6A8796" stroke-width=".9"/>'
+ +TL(750,438,"STATOR RING",{"text-anchor":"middle","font-size":9.5});
+/* brake calipers */
+d+=R(925,170,22,28,{fill:"url(#gTr)",stroke:"#6A8796","stroke-width":1})
+ +R(925,362,22,28,{fill:"url(#gTr)",stroke:"#6A8796","stroke-width":1})
+ +TL(958,166,"BRAKE",{"font-size":8.5});
+/* nameplate */
+d+=TL(608,282,"SAG MILL 800-ML-903",{"text-anchor":"middle","font-size":13,fill:"#F2F8FB","font-weight":"700"})
+ +TL(608,299,"11.10 m D \u00D7 6.10 m EGL  /  gearless 19.4 MW",
+     {"text-anchor":"middle","font-size":8.5,fill:"#AFC4D0"});
+d+=TL(398,334,"FEED TRUNNION",{"font-size":7.5})+TL(1004,334,"DISCH. TRUNNION",{"font-size":7.5});
+
+
+/* feed conveyor 800-CV-903 */
+(function(){
+  var ax=66, ay=224, bx=344, by=102;
+  var dx=bx-ax, dy=by-ay, L0=Math.sqrt(dx*dx+dy*dy), ux=dx/L0, uy=dy/L0;
+  var px=-uy, py=ux;                       /* perpendicular, up-left */
+  function pt(t,o){ return [(ax+ux*L0*t+px*o).toFixed(1), (ay+uy*L0*t+py*o).toFixed(1)]; }
+  var t0=pt(0,-14), t1=pt(1,-14), b0=pt(0,14), b1=pt(1,14);
+  var m0=pt(0.06,-23), m1=pt(0.94,-23), n0=pt(0.06,-14), n1=pt(0.94,-14);
+  /* stringer */
+  d+=P("M"+pt(0,16)[0]+" "+pt(0,16)[1]+"L"+pt(1,16)[0]+" "+pt(1,16)[1],
+      {stroke:"#3E5664","stroke-width":3});
+  /* ore bed */
+  d+=P("M"+m0[0]+" "+m0[1]+"L"+m1[0]+" "+m1[1]+"L"+n1[0]+" "+n1[1]+"L"+n0[0]+" "+n0[1]+"Z",
+      {fill:"#8A6B4E",stroke:"none",opacity:".85"});
+  /* belt carrying and return runs */
+  d+=P("M"+t0[0]+" "+t0[1]+"L"+t1[0]+" "+t1[1],
+      {stroke:"#B08968","stroke-width":2.2,id:"beltTop",class:"anim"})
+   +P("M"+b0[0]+" "+b0[1]+"L"+b1[0]+" "+b1[1],{stroke:"#6E5540","stroke-width":1.6});
+  /* pulleys and idlers */
+  d+=C(ax,ay,14,{fill:"url(#gTr)",stroke:"#6A8796","stroke-width":1.1})
+   +C(bx,by,14,{fill:"url(#gTr)",stroke:"#6A8796","stroke-width":1.1})
+   +C(bx+22,by+14,9,{fill:"#141C21",stroke:"#6A8796","stroke-width":1})
+   +T(bx+22,by+17.5,"M",{"text-anchor":"middle","font-size":8.5,"font-weight":"700",fill:"#C3D4DD"});
+  for(var k=1;k<=4;k++){ var q=pt(k/5,16); d+=C(+q[0],+q[1],4,{stroke:"#55707E","stroke-width":1}); }
+  d+=TL(50,262,"800-CV-903",{"font-size":9,fill:"#8FA6B2","letter-spacing":".06em"})
+   +TL(50,274,"FEED CONVEYOR",{"font-size":8.4,fill:"#5E7683"});
+})();
+
+/* feed, trommel, discharge */
+var PU="#B08968";
+d+=P("M352 108H436L468 242H420Z",{fill:"url(#gHd)",stroke:PU,opacity:".92"})
+ +R(1050,240,110,80,{fill:"url(#gTr)",stroke:"#6A8796","stroke-width":1.3})+R(1050,240,110,80,{fill:"url(#mesh)",stroke:"none"})+'<ellipse cx="1160" cy="280" rx="9" ry="40" fill="#24363F" stroke="#6A8796" stroke-width=".9"/>'
+ +TL(1105,233,"TROMMEL",{"text-anchor":"middle","font-size":9})
+ +P("M1058 320H1152L1136 400H1074Z",{fill:"url(#gHd)",stroke:PU,opacity:".9"})
+ +R(1060,400,160,80,{id:"box",fill:"#141C21"})
+ +TL(1140,445,"DISCHARGE BOX",{"text-anchor":"middle","font-size":9.5})
+ +L(1105,480,1105,529,{stroke:PU})+L(1175,480,1175,529,{stroke:PU})
+ +C(1105,545,16,{fill:"#141C21"})+C(1175,545,16,{fill:"#141C21"})
+ +P("M1095 537L1115 545L1095 553Z",{fill:PU,stroke:"none"})
+ +P("M1165 537L1185 545L1165 553Z",{fill:PU,stroke:"none"})
+ +TL(1140,578,"SLURRY PUMPS",{"text-anchor":"middle","font-size":8.5});
+d+=R(1240,505,160,110,{id:"ccroom",fill:"#141C21"})
+ +TL(1320,538,"CONVERTER",{"text-anchor":"middle","font-size":9.5})
+ +TL(1320,552,"ROOM",{"text-anchor":"middle","font-size":9.5});
+
+/* lubrication unit */
+var OIL="#E8A33C", OILR="#8A6425";
+d+=R(60,520,260,90,{id:"tank",fill:"url(#gTr)",stroke:"#6A8796","stroke-width":1.2})
+ +L(150,520,150,610,{stroke:"#2A3B46"})+L(235,520,235,610,{stroke:"#2A3B46"})
+ +TL(105,626,"RETURN",{"text-anchor":"middle","font-size":8})
+ +TL(192,626,"PREPARATION",{"text-anchor":"middle","font-size":8})
+ +TL(277,626,"CONDITION.",{"text-anchor":"middle","font-size":8})
+ +TL(60,490,"MAIN BEARING LUBRICATION UNIT",{"font-size":9.5});
+d+='<rect id="oilBody" x="61" y="560" width="258" height="49" fill="#3A2C12"/>';
+d+=L(60,560,320,560,{id:"oilLvl",stroke:OIL,"stroke-width":1.5});
+[[356,562],[356,596]].forEach(function(q,k){
+  d+=C(q[0],q[1],12,{id:"lp"+k,fill:"#141C21"})
+   +P("M"+(q[0]-7)+" "+(q[1]-6)+"L"+(q[0]+8)+" "+q[1]+"L"+(q[0]-7)+" "+(q[1]+6)+"Z",{fill:OIL,stroke:"none"});});
+d+=TL(334,628,"LOW PRESSURE",{"font-size":8});
+[0,1,2,3].forEach(function(k){var y=606-k*33;
+  d+=C(408,y,12,{id:"hp"+k,fill:"#141C21"})
+   +P("M401 "+(y-6)+"L416 "+y+"L401 "+(y+6)+"Z",{fill:OIL,stroke:"none",id:"hpf"+k});});
+d+=TL(430,500,"HIGH PRESSURE",{"font-size":8})+TL(430,510,"3 DUTY + 1 STANDBY",{"font-size":8});
+
+/* distribution to shoes and returns */
+d+=L(420,562,452,562,{id:"hdr0",stroke:OIL,"stroke-width":1.5,class:"anim"})
+ +L(452,562,452,448,{id:"hdr1",stroke:OIL,"stroke-width":1.7,class:"anim"})
+ +L(452,448,1028,448,{id:"hdr2",stroke:OIL,"stroke-width":1.7,class:"anim"})
+ +R(424,424,48,20,{id:"divF",fill:"#141C21"})+R(1004,424,48,20,{id:"divD",fill:"#141C21"})
+ +TL(448,418,"DIVIDER",{"text-anchor":"middle","font-size":7.5})
+ +TL(1028,418,"DIVIDER",{"text-anchor":"middle","font-size":7.5});
+[0,1,2,3].forEach(function(k){
+  d+=L(430+k*12,424,430+k*12,310,{id:"pF"+k,stroke:OIL,"stroke-width":1.3,class:"anim","marker-end":"url(#ar)"})
+   +L(1010+k*12,424,1010+k*12,310,{id:"pD"+k,stroke:OIL,"stroke-width":1.3,class:"anim","marker-end":"url(#ar)"});});
+d+=P("M414 300L386 300L386 496L80 496L80 520",{"stroke-dasharray":"6 4",stroke:OILR})
+ +P("M1056 300L1086 300L1086 376L336 376L336 496L132 496L132 520",{"stroke-dasharray":"6 4",stroke:OILR});
+d+=R(58,336,112,40,{id:"grease",fill:"#141C21"})
+ +TL(114,361,"GREASE SEAL",{"text-anchor":"middle","font-size":9})
+ +P("M170 352L250 352L250 318L414 318",{"stroke-dasharray":"2 3",stroke:"#6A5A3A"});
+
+/* instruments */
+["ZI9373","PI9371","TI9372"].forEach(function(id,k){ d+=bub(292,196+k*76,id); });
+["ZI9376","PI9374","TI9375"].forEach(function(id,k){ d+=bub(1096+k*106,120,id); });
+d+=bub(104,434,"TI9381")+bub(202,434,"AI9383")+bub(300,434,"PI9384")+bub(398,434,"LI9382");
+d+=bub(506,566,"PI9380")+bub(594,512,"FI9385")+bub(594,592,"XI9386");
+d+=bub(560,104,"JI9301")+bub(916,104,"SI9302")+bub(228,292,"WI9303");
+d+=bub(700,512,"TI9310")+bub(822,512,"ZI9311")+bub(1320,452,"TI9312");
+
+/* legend */
+d+=R(1168,168,214,142,{stroke:"#2A3B46",fill:"#0E171C"})
+ +TL(1180,186,"LEGEND",{"font-size":8.5,"font-weight":"700","letter-spacing":"1.2",fill:"#8FA6B2"})
+ +TL(1180,203,"Common tag prefix:  800-",{"font-size":9})
+ +C(1190,224,11,{fill:"#0E171C"})+TL(1208,228,"Configured in EFM 17",{"font-size":9})
+ +TL(1208,239,"(wN = KDI weight)",{"font-size":8,fill:"#55707E"})
+ +C(1190,260,11,{"stroke-dasharray":"4 3",fill:"#0E171C"})+TL(1208,260,"Present on the asset,",{"font-size":9})
+ +TL(1208,271,"not in the EFM or simulator",{"font-size":9})
+ +L(1181,288,1199,288,{stroke:OIL,"stroke-width":1.6})+TL(1208,291,"oil",{"font-size":8.5})
+ +L(1237,288,1255,288,{stroke:CW,"stroke-width":1.6})+TL(1264,291,"water",{"font-size":8.5})
+ +L(1304,288,1322,288,{stroke:PU,"stroke-width":1.6})+TL(1331,291,"slurry",{"font-size":8.5});
+
+svg.innerHTML=d;
+
+/* ══════════ 7. STATE, SCENARIOS, CONTROLS ══════════ */
+var S={Jc:0.26,Jb:0.14,phi:0.733,nHP:3,split:0,dp:60,lvl:78,iso:16,cool:1,nCool:4,cc:true,Twin:28,Tcold:false};
+var BASE=JSON.parse(JSON.stringify(S));
+var MODE="live", tmin=0, playing=false, SPD=[60,600,1800,3600], spi=1, last=0;
+/* the simulator sequence restarted at 2026-09-23 00:00 UTC; from that anchor the cycle
+   position is deterministic, so the twin can phase-lock to the plant without an API.   */
+var ANCHOR=Date.UTC(2026,8,23,0,0,0), POFF=0, SYNC=true;
+function clockPos(){ var m=(Date.now()-ANCHOR)/60000 + POFF*60; return ((m%CYC)+CYC)%CYC; }
+
+var SLID=[
+ {k:"Jc",   t:"Total charge filling",   u:"%",     min:0.14,max:0.36,st:0.005,sc:100,dec:1},
+ {k:"Jb",   t:"Ball filling",           u:"%",     min:0.04,max:0.20,st:0.005,sc:100,dec:1},
+ {k:"phi",  t:"Speed",                  u:"% Nc",  min:0.60,max:0.84,st:0.005,sc:100,dec:1},
+ {k:"nHP",  t:"HP pumps running",       u:"of 3",  min:0,   max:3,   st:1,    sc:1,  dec:0},
+ {k:"split",t:"Flow divider imbalance", u:"%",     min:-0.5,max:0.5, st:0.02, sc:100,dec:0},
+ {k:"dp",   t:"Filter ΔP",         u:"kPa",   min:43,  max:191, st:1,    sc:1,  dec:0},
+ {k:"lvl",  t:"Reservoir level",        u:"%",     min:32,  max:85,  st:1,    sc:1,  dec:0},
+ {k:"iso",  t:"ISO 4406 code",          u:"code",  min:14,  max:24,  st:0.5,  sc:1,  dec:1},
+ {k:"cool", t:"Oil cooler capacity",    u:"%",     min:0.3, max:1,   st:0.05, sc:100,dec:0},
+ {k:"nCool",t:"Stator cooling branches",u:"of 4",  min:0,   max:4,   st:1,    sc:1,  dec:0},
+ {k:"Twin", t:"Cooling water",          u:"°C",min:18, max:40,  st:1,    sc:1,  dec:0}
+];
+var ESC=[
+ {n:"Normal operation",s:BASE},
+ {n:"One HP pump lost",s:{nHP:2}},
+ {n:"Two HP pumps lost",s:{nHP:1}},
+ {n:"Flow divider off balance",s:{split:0.34}},
+ {n:"Dirty oil, filter clogged",s:{iso:22,dp:178}},
+ {n:"Oil cooler degraded",s:{cool:0.5}},
+ {n:"Leak, low reservoir",s:{lvl:36,dp:150}},
+ {n:"One stator branch lost",s:{nCool:3}},
+ {n:"Two stator branches lost",s:{nCool:2}},
+ {n:"Converter cooling lost",s:{cc:false}},
+ {n:"Mill overload",s:{Jc:0.32,phi:0.79}},
+ {n:"Cold start",s:{Tcold:true,phi:0.62}}
+];
+
+var ctl=document.getElementById("ctl"), scn=document.getElementById("scn");
+function toWhat(){ if(MODE!=="what") setMode("what"); }
+SLID.forEach(function(sl){
+  var w=document.createElement("div"); w.className="row";
+  var a=sl.min*sl.sc, b=sl.max*sl.sc;
+  w.innerHTML='<label><span>'+sl.t+'</span><span class="ent">'
+    +'<input type="number" class="num" id="n_'+sl.k+'" min="'+a+'" max="'+b+'" step="'+(sl.st*sl.sc)
+    +'" title="range '+a+' to '+b+'"><i>'+sl.u+'</i></span></label>'
+    +'<input type="range" id="s_'+sl.k+'" min="'+sl.min+'" max="'+sl.max+'" step="'+sl.st+'">';
+  ctl.appendChild(w);
+  var rg=w.querySelector("input[type=range]"), nb=w.querySelector("input[type=number]");
+  rg.addEventListener("input",function(){ toWhat(); S[sl.k]=parseFloat(this.value); mark(-1); render(); });
+  function commit(){
+    toWhat();
+    var x=parseFloat(nb.value);
+    if(isNaN(x)){ nb.classList.remove("bad"); render(); return; }
+    var cl=Math.max(a,Math.min(b,x)); nb.classList.toggle("bad",cl!==x);
+    S[sl.k]=Math.max(sl.min,Math.min(sl.max,Math.round((cl/sl.sc)/sl.st)*sl.st));
+    mark(-1); render(); setTimeout(function(){nb.classList.remove("bad");},1000);
+  }
+  nb.addEventListener("focus",toWhat);
+  nb.addEventListener("change",commit);
+  nb.addEventListener("keydown",function(e){ if(e.key==="Enter"){commit();nb.blur();} });
+});
+[["cc","Converter cooling"],["Tcold","Cold start"]].forEach(function(t){
+  var w=document.createElement("div"); w.className="row";
+  w.innerHTML='<label><span>'+t[1]+'</span></label><button id="s_'+t[0]+'" class="tbtn" '
+    +'style="width:100%;padding:5px"></button>';
+  ctl.appendChild(w);
+  w.querySelector("button").addEventListener("click",function(){ toWhat(); S[t[0]]=!S[t[0]]; mark(-1); render(); });
+});
+ESC.forEach(function(e,i){
+  var b=document.createElement("button"); b.textContent=e.n; if(i===0) b.className="wide";
+  b.addEventListener("click",function(){
+    setMode("what");
+    for(var k in BASE) S[k]=BASE[k];
+    if(i>0) for(var k2 in e.s) S[k2]=e.s[k2];
+    mark(i); render();
+  });
+  scn.appendChild(b);
+});
+function mark(i){ var bs=scn.querySelectorAll("button");
+  for(var j=0;j<bs.length;j++) bs[j].className=(j===0?"wide":"")+(j===i?" on":""); }
+
+/* ══════════ 8. TOOLBAR ══════════ */
+var scrub=document.getElementById("scrub"), clk=document.getElementById("clk"),
+    play=document.getElementById("play"), spd=document.getElementById("spd"),
+    syncB=document.getElementById("sync"), poff=document.getElementById("poff");
+function setSync(on){
+  SYNC=on; syncB.className = on ? "tbtn live" : "tbtn";
+  scrub.disabled=on; play.disabled=on; play.style.opacity=on?.45:1;
+  if(on){ if(MODE!=="live") setMode("live"); playing=false;
+          play.innerHTML="&#9654; PLAY"; play.className="tbtn"; tmin=clockPos(); scrub.value=Math.round(tmin); }
+  render();
+}
+syncB.addEventListener("click",function(){ setSync(!SYNC); });
+poff.addEventListener("change",function(){
+  var v=parseFloat(this.value); POFF=isNaN(v)?0:v;
+  if(SYNC){ tmin=clockPos(); scrub.value=Math.round(tmin); } render();
+});
+function setMode(m){
+  MODE=m;
+  var bs=document.querySelectorAll("#mode button");
+  for(var i=0;i<bs.length;i++) bs[i].className = bs[i].dataset.m===m?"on":"";
+  ctl.className = m==="what" ? "ctl" : "ctl off";
+  var ch=document.getElementById("ctlh");
+  if(ch) ch.textContent = m==="what" ? "INPUT VARIABLES" : "INPUT VARIABLES  \u00B7  EDIT ANY FIELD TO SWITCH TO WHAT-IF";
+  if(m==="what"){ playing=false; SYNC=false; syncB.className="tbtn";
+                  scrub.disabled=false; play.disabled=false; play.style.opacity=1;
+                  play.innerHTML="&#9654; PLAY"; play.className="tbtn live"; }
+  render();
+}
+document.querySelectorAll("#mode button").forEach(function(b){
+  b.addEventListener("click",function(){ setMode(b.dataset.m); });
+});
+play.addEventListener("click",function(){
+  if(SYNC) return;
+  if(MODE!=="live") setMode("live");
+  playing=!playing;
+  play.innerHTML = playing ? "&#10073;&#10073; PAUSE" : "&#9654; PLAY";
+  play.className = playing ? "tbtn" : "tbtn live";
+  last=performance.now();
+});
+spd.addEventListener("click",function(){ spi=(spi+1)%SPD.length; spd.textContent=(SPD[spi]/60)+" min/s"; });
+scrub.addEventListener("input",function(){
+  if(SYNC) return;
+  if(MODE!=="live") setMode("live");
+  tmin=parseInt(this.value,10); render();
+});
+function tick(now){
+  if(SYNC && MODE==="live"){ tmin=clockPos(); scrub.value=Math.round(tmin); render(); last=now; }
+  else if(playing && MODE==="live"){
+    var dt=(now-last)/1000; last=now;
+    tmin=(tmin + dt*SPD[spi]/60) % CYC;
+    scrub.value=Math.round(tmin); render();
+  } else last=now;
+  requestAnimationFrame(tick);
+}
+
+/* ══════════ 9. RENDER ══════════ */
+var COL={"-1":"#3E525C",0:"#5E7683",1:"#F2B33D",2:"#FF4D57"};
+var VC={"-1":"#55707E",0:"#D7E3E9",1:"#F2B33D",2:"#FF4D57"};
+var kpis=document.getElementById("kpis"), seq=document.getElementById("seq");
+
+function setB(id,txt,st){
+  var c=document.getElementById(id+"_c"), v=document.getElementById(id+"_v"),
+      t=document.getElementById(id+"_t"), r=document.getElementById(id+"_r");
+  if(!c) return;
+  v.textContent=txt; v.setAttribute("fill",VC[st]);
+  c.setAttribute("stroke",COL[st]); c.setAttribute("stroke-width",st>0?1.9:1.2);
+  t.setAttribute("fill",st>0?COL[st]:"#D7E3E9");
+  r.setAttribute("stroke",st>0?COL[st]:"#2A3B46");
+}
+function pipe(id,st,on){
+  var e=document.getElementById(id); if(!e) return;
+  var w=e.getAttribute("data-w"); if(!w){ w=e.getAttribute("stroke-width")||"1.2"; e.setAttribute("data-w",w); }
+  if(st>0) e.setAttribute("stroke",COL[st]);
+  else if(e.getAttribute("data-c")) e.setAttribute("stroke",e.getAttribute("data-c"));
+  if(!e.getAttribute("data-c")) e.setAttribute("data-c", e.getAttribute("stroke"));
+  e.setAttribute("stroke-width", st>0?Math.max(2,parseFloat(w)):parseFloat(w));
+  var cl=(e.getAttribute("class")||"").replace(" stop","").replace("stop","");
+  e.setAttribute("class", on===false ? (cl+" stop").trim() : cl);
+}
+function spark(id,vals,hi,al){
+  var el=document.getElementById(id+"_s"); if(!el) return;
+  if(!vals){ el.setAttribute("points",""); return; }
+  var lo=Math.min(hi,al), up=Math.max(hi,al), sp=(up-lo)||1;
+  var x0=0, pts=[];
+  var bb=document.getElementById(id+"_r");
+  var rx=parseFloat(bb.getAttribute("x")), ry=parseFloat(bb.getAttribute("y"));
+  for(var i=0;i<vals.length;i++){
+    var u=Math.max(0,Math.min(1,(vals[i]-lo)/sp));
+    pts.push((rx+48+i*(44/(vals.length-1))).toFixed(1)+","+(ry+15-u*11).toFixed(1));
+  }
+  el.setAttribute("points",pts.join(" "));
+  var lastv=vals[vals.length-1];
+  var dv=(lastv-hi)/(al-hi);
+  el.setAttribute("stroke", dv>1?"#FF4D57":dv>0.45?"#F2B33D":"#5E7683");
+}
+
+function render(){
+  SLID.forEach(function(sl){
+    document.getElementById("s_"+sl.k).value=S[sl.k];
+    var nb=document.getElementById("n_"+sl.k);
+    if(nb && document.activeElement!==nb) nb.value=(S[sl.k]*sl.sc).toFixed(sl.dec);
+  });
+  var bc=document.getElementById("s_cc"); bc.textContent=S.cc?"IN SERVICE":"OUT OF SERVICE";
+  bc.style.color=S.cc?"#E6EEF2":"#FF4D57"; bc.style.borderColor=S.cc?"#2A3B46":"#FF4D57";
+  document.getElementById("s_Tcold").textContent=S.Tcold?"YES":"NO";
+
+  var V={}, hist={}, live=(MODE==="live"), ph=null;
+  if(live){
+    var i0=Math.round(tmin);
+    V=replay(i0);
+    TAGS.forEach(function(t){ if(!SIMSET[t.id]) V[t.id]=null; });
+    var N=16, step=42;
+    TAGS.forEach(function(t){
+      if(!SIMSET[t.id]) return;
+      var a=[];
+      for(var k=N-1;k>=0;k--){ var ii=(i0-k*step+CYC)%CYC; a.push(replay(ii)[t.id]); }
+      hist[t.id]=a;
+    });
+  } else {
+    ph=physics(S); V=ph.V;
+  }
+
+  var KD={}, num=0;
+  TAGS.forEach(function(t){
+    var v=V[t.id];
+    KD[t.id]= v==null ? null : kdiOf(devOf(t,v));
+    var txt = v==null ? "no data" : (t.dec?v.toFixed(t.dec):Math.round(v).toLocaleString("en-US"))+" "+t.u;
+    setB(t.id, txt, bandOf(KD[t.id]));
+    var kel=document.getElementById(t.id+"_k");
+    if(kel){ kel.textContent = KD[t.id]==null ? "KDI \u2014" : "KDI "+KD[t.id].toFixed(0);
+             kel.setAttribute("fill", KD[t.id]==null?"#455D69":VC[bandOf(KD[t.id])]); }
+    spark(t.id, hist[t.id]||null, t.hi, t.al);
+    if(t.cfg && KD[t.id]!=null) num+=t.w*KD[t.id];
+  });
+  var HI=Math.max(0,Math.min(100, WSUM?num/WSUM:100)), hb=bandHI(HI), FPI=100-HI;
+
+  var flowOK = live ? true : S.nHP>0;
+  ["hdr0","hdr1","hdr2"].forEach(function(id){ pipe(id, bandOf(KD.PI9380), flowOK); });
+  [0,1,2,3].forEach(function(k){
+    pipe("pF"+k, bandOf(KD.ZI9373), flowOK); pipe("pD"+k, bandOf(KD.ZI9376), flowOK);
+    var run = live ? k<3 : k<S.nHP, res = live ? k===3 : (k===3&&S.nHP===3);
+    var c=document.getElementById("hp"+k);
+    if(c){ c.setAttribute("stroke", run?"#E8A33C":(res?"#55707E":"#FF4D57"));
+           c.setAttribute("stroke-dasharray", res?"4 3":""); }
+    var f=document.getElementById("hpf"+k);
+    if(f) f.setAttribute("fill", run?"#E8A33C":(res?"#2A3B46":"#3A1316"));
+    var nC = live ? 4 : S.nCool;
+    pipe("cwB"+k, live?-1:bandOf(KD.TI9310), k<nC);
+  });
+  pipe("ring", live?-1:bandOf(KD.TI9310));
+  pipe("cwCC", live?-1:(S.cc?0:2), live?true:S.cc);
+  pipe("trF",bandOf(KD.ZI9373)); pipe("trD",bandOf(KD.ZI9376));
+  pipe("tank",bandOf(KD.LI9382)); pipe("ccroom", live?-1:bandOf(KD.TI9312));
+  var lv=V.LI9382, yy=610-0.9*(lv==null?78:lv);
+  var ol=document.getElementById("oilLvl"), ob=document.getElementById("oilBody");
+  if(ol){ ol.setAttribute("y1",yy); ol.setAttribute("y2",yy);
+          ol.setAttribute("stroke", bandOf(KD.LI9382)>0?COL[bandOf(KD.LI9382)]:"#E8A33C"); }
+  if(ob){ ob.setAttribute("y",yy+1); ob.setAttribute("height",Math.max(0,609-yy)); }
+
+  var lt = live ? leadTime(Math.round(tmin)) : null;
+  var ltv = lt ? (lt.past ? "0" : (lt.h<48 ? lt.h.toFixed(1) : String(Math.round(lt.h)))) : "\u2014";
+  var lts = lt ? (lt.past ? "alarm reached" : TM[lt.id].t) : (live?"no alarm in cycle":"what-if");
+  var ltb = (lt&&!lt.past) ? (lt.h<24?2:(lt.h<72?1:0)) : (lt?2:0);
+  var KP=[["HEALTH INDEX",HI.toFixed(0),"/100",hb],
+          ["FPI \u00B7 BEARING LUBRICATION",FPI.toFixed(0),"/100",hb],
+          ["LEAD TIME",ltv,"h \u00B7 "+lts,ltb],
+          ["FILM DISCHARGE",V.ZI9376==null?"\u2014":V.ZI9376.toFixed(3),"mm",bandOf(KD.ZI9376)],
+          ["SHOE PRESSURE",V.PI9374==null?"\u2014":Math.round(V.PI9374).toLocaleString("en-US"),"kPa",bandOf(KD.PI9374)],
+          ["SHOE TEMP",V.TI9375==null?"\u2014":V.TI9375.toFixed(1),"\u00B0C",bandOf(KD.TI9375)],
+          ["OIL CLEANLINESS",V.AI9383==null?"\u2014":V.AI9383.toFixed(1),"code",bandOf(KD.AI9383)],
+          ["RESERVOIR",V.LI9382==null?"\u2014":Math.round(V.LI9382),"%",bandOf(KD.LI9382)]];
+  kpis.innerHTML=KP.map(function(k,i){
+    var cls=(i<2)?"":(k[3]===1?"w":k[3]===2?"a":"");
+    var st=(i<2)?' style="color:'+HIC[hb]+'"'
+          :(i===2&&k[3]>0?' style="color:'+(k[3]===2?"#FF4D57":"#F2B33D")+'"':"");
+    return '<div class="kpi '+cls+(i===0?" hero":"")+'">'
+      +'<div class="k">'+k[0]+'</div><div class="v"'+st+'>'+k[1]
+      +' <span class="u">'+k[2]+'</span></div></div>';}).join("");
+
+  var ev=[];
+  function pick(id,rank,msg){ if(bandOf(KD[id])>0) ev.push([rank,"<b>"+TM[id].t+"</b>"+(TM[id].w?" (w"+TM[id].w+")":"")+" — "+msg]); }
+  if(!live && S.nHP<3) ev.push([1,"<b>800-XI-9386</b> — "+S.nHP+" of 3 HP pumps running. This is the cause, not the symptom."]);
+  if(!live && Math.abs(S.split)>0.1) ev.push([1,"<b>Flow divider</b> off balance by "+(S.split*100).toFixed(0)+" %: one trunnion gets more flow than the other."]);
+  pick("PI9380",1,"supply at "+Math.round(V.PI9380)+" kPa against a 560 kPa healthy value.");
+  pick("LI9382",1,"reservoir at "+Math.round(V.LI9382)+" %, alarm at 30 %.");
+  pick("PI9384",2,"filter ΔP "+Math.round(V.PI9384)+" kPa, alarm at 180 kPa.");
+  pick("AI9383",2,"ISO code "+V.AI9383.toFixed(1)+", alarm at 23.");
+  pick("ZI9376",2,"discharge film "+V.ZI9376.toFixed(3)+" mm. It moves first.");
+  pick("ZI9373",2,"feed film "+V.ZI9373.toFixed(3)+" mm.");
+  pick("PI9374",3,"discharge shoe pressure "+Math.round(V.PI9374)+" kPa. Load sharing follows the film.");
+  pick("PI9371",3,"feed shoe pressure "+Math.round(V.PI9371)+" kPa.");
+  pick("TI9381",4,"oil at "+V.TI9381.toFixed(1)+" °C.");
+  pick("TI9375",4,"discharge shoe "+V.TI9375.toFixed(1)+" °C. It arrives last: by the time you see it, the film has already dropped.");
+  pick("TI9372",4,"feed shoe "+V.TI9372.toFixed(1)+" °C.");
+  if(!live){
+    pick("TI9310",5,"stator ring "+Math.round(V.TI9310)+" °C with "+S.nCool+" of 4 branches. Not in the EFM.");
+    pick("ZI9311",5,"air gap "+V.ZI9311.toFixed(2)+" mm. Not in the EFM.");
+    if(!S.cc) ev.push([6,"<b>Converter without cooling</b>: available power limited to "+ph.Pcap.toFixed(1)+" MW."]);
+    if(ph.clip) ev.push([6,"<b>Demand clipped</b>: the mill asks for "+ph.Pdem.toFixed(2)+" MW and "+ph.Pcap.toFixed(1)+" MW are available."]);
+  }
+  ev.sort(function(a,b){return a[0]-b[0];});
+  seq.innerHTML='<div class="fpiline">Health index <b style="color:'+HIC[hb]+'">'+HI.toFixed(0)
+    +'</b>/100 \u2014 '+HIN[hb]+' &nbsp;\u00B7&nbsp; FPI '+FPI.toFixed(0)
+    +(live?' &nbsp;\u00B7&nbsp; replay':' &nbsp;\u00B7&nbsp; what-if')+'</div>'
+    +(ev.length?"<ol>"+ev.map(function(e){return "<li>"+e[1]+"</li>";}).join("")+"</ol>"
+               :'<div class="none">All EFM variables within band.</div>');
+
+  var dd=Math.floor(tmin/1440), hh=Math.floor((tmin%1440)/60), mm=Math.floor(tmin%60);
+  clk.innerHTML = live
+    ? (SYNC?"<small>PLANT CLOCK </small>":"")+"DAY "+dd+" "+String(hh).padStart(2,"0")+":"
+      +String(mm).padStart(2,"0")+" <small>of 5 d 14 h cycle</small>"
+    : "<small>what-if, clock held</small>";
+}
+
+document.getElementById("note").innerHTML =
+ '<b>Health index</b> is the weighted mean of the KDIs of the eleven parameters configured in EFM 17, on a 0\u2013100 scale '
+ +'with the four bands of the Genix gauge (0\u201320, 20\u201350, 50\u201385, 85\u2013100). KDI = 100 at the healthy reference of each tag and 20 at its alarm value, '
+ +'weighted as the model weights them (\u03A3w = '+WSUM+'). The <b>FPI</b> beside it is a transparent proxy, 100 \u2212 HI; the deployed model derives its own FPI '
+ +'from the clustering, so the two track each other rather than matching digit for digit. <b>Lead time</b> is the time from the current position of the cycle '
+ +'until the first configured tag reaches its alarm value. '
+ +'<b>Plant clock.</b> The simulator sequence restarted at 2026-09-23 00:00 UTC, so from that anchor the position in the cycle is deterministic '
+ +'and the twin phase-locks to the plant from the browser clock, with no API. The trim field shifts the phase in hours when the anchor or the time zone is off. '
+ +'<b>Live replay</b> reproduces the plant simulator sequence: 258 tags at one minute, 8 065 samples per tag (5 d 14 h 25 min), restarting at the end of the cycle. '
+ +'Anchored to the simulator file for every tag: the value at the start, at mid-cycle and at the end, and the minimum and maximum reached over the whole cycle. '
+ +'The path between those anchors is reconstructed with an operational rhythm (daily, shift and short cycle) whose amplitude narrows as each variable stiffens, plus minute noise, '
+ +'clamped to the recorded minimum and maximum. The discharge-bearing collapse keeps a deliberate order \u2014 film first, shoe pressure next, temperature last \u2014 because thermal inertia lags. '
+ +'Tags with a dashed outline exist on the asset but are in neither the EFM nor the simulator. '
+ +'<b>What-if</b> uses the Austin correlation for power, K calibrated to 17.50 MW at J = 26 %, balls 14 %, 73.3 % N<sub>c</sub>, and a hydrostatic film h \u221D (Q\u00B7\u03BC/p)<sup>1/3</sup> '
+ +'referred to 0.170 mm at design. <b>To confirm:</b> number and area of shoes, and the flow and pressure of the high-pressure unit. '
+ +'<b>Not modelled:</b> internal classification, pebble crushing, liner wear, start-up dynamics or the real drive protection.';
+
+setMode("live"); mark(-1); setSync(true); requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
