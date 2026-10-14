@@ -19,73 +19,80 @@ html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
   border:1px solid var(--line)}
 .mast{flex:none;display:flex;justify-content:space-between;align-items:flex-end;
   padding:9px 14px 8px;border-bottom:1px solid var(--line)}
-.mast h1{margin:0;font-size:16px;font-weight:700}
-.mast .sub{font-size:10.5px;color:var(--ink2);margin-top:2px}
-.mast .rt{text-align:right;font:600 9px/1.5 "Consolas",ui-monospace,monospace;
+.mast h1{margin:0;font-size:18px;font-weight:700}
+.mast .sub{font-size:11.6px;color:var(--ink2);margin-top:2px}
+.mast .rt{text-align:right;font:600 9.8px/1.55 "Consolas",ui-monospace,monospace;
   color:var(--ink3);letter-spacing:.09em}
 
 .tbar{flex:none;display:flex;align-items:center;gap:10px;padding:7px 14px;
   border-bottom:1px solid var(--line);background:var(--pan2)}
 .seg{display:flex;border:1px solid var(--line)}
-.seg button{font:700 9.5px/1 inherit;letter-spacing:.08em;color:var(--ink2);background:transparent;
-  border:0;padding:7px 11px;cursor:pointer}
+.seg button{font:700 10.4px/1 inherit;letter-spacing:.08em;color:var(--ink2);background:transparent;
+  border:0;padding:8px 13px;cursor:pointer}
 .seg button.on{background:var(--ink);color:var(--bg)}
-.tbtn{font:700 9.5px/1 inherit;letter-spacing:.06em;color:var(--ink);background:transparent;
-  border:1px solid var(--line);padding:7px 10px;cursor:pointer;min-width:62px}
+.tbtn{font:700 10.4px/1 inherit;letter-spacing:.06em;color:var(--ink);background:transparent;
+  border:1px solid var(--line);padding:8px 12px;cursor:pointer;min-width:70px}
 .tbtn:hover{border-color:var(--ink3)}
 .tbtn.live{border-color:var(--ok);color:var(--ok)}
 #scrub{flex:1;min-width:120px}
-.clk{font:700 11px/1 "Consolas",ui-monospace,monospace;color:var(--ink);white-space:nowrap}
+.clk{font:700 12.4px/1 "Consolas",ui-monospace,monospace;color:var(--ink);white-space:nowrap}
+.phz{display:inline-flex;align-items:center;gap:4px}
+.phz input{width:58px;text-align:right;background:var(--pan);color:var(--ink);
+  font:700 11.4px/1.3 "Consolas",ui-monospace,monospace;border:1px solid var(--line);padding:4px 5px}
+.off input:focus{outline:none;border-color:var(--ok)}
+.phz i{font-style:normal;font:600 9px/1 "Consolas",ui-monospace,monospace;color:var(--ink3)}
 .clk small{color:var(--ink3);font-weight:400}
 
 .body{flex:1;min-height:0;display:flex}
 .draw{flex:1;min-width:0;min-height:0;border-right:1px solid var(--line)}
 .draw svg{display:block;width:100%;height:100%}
-.rail{width:296px;flex:none;min-height:0;display:flex;flex-direction:column;background:var(--pan2)}
-.rail h2{margin:0;padding:7px 12px 6px;font:700 8.5px/1.4 "Consolas",ui-monospace,monospace;
+.rail{width:352px;flex:none;min-height:0;display:flex;flex-direction:column;background:var(--pan2)}
+.rail h2{margin:0;padding:9px 14px 8px;font:700 9.6px/1.4 "Consolas",ui-monospace,monospace;
   letter-spacing:.14em;color:var(--ink3);border-bottom:1px solid var(--line2)}
-.scn{flex:none;padding:7px 9px;display:grid;grid-template-columns:1fr 1fr;gap:4px;
+.scn{flex:none;padding:9px 11px;display:grid;grid-template-columns:1fr 1fr;gap:5px;
   border-bottom:1px solid var(--line2)}
-.scn button{font:600 9.6px/1.2 inherit;color:var(--ink2);background:transparent;
-  border:1px solid var(--line);padding:5px 6px;text-align:left;cursor:pointer}
+.scn button{font:600 10.6px/1.25 inherit;color:var(--ink2);background:transparent;
+  border:1px solid var(--line);padding:7px 8px;text-align:left;cursor:pointer}
 .scn button:hover{border-color:var(--ink3);color:var(--ink)}
 .scn button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 .scn button.wide{grid-column:1/-1}
-.ctl{flex:1;min-height:0;overflow:auto;padding:8px 12px 10px}
-.ctl.off{opacity:.3;pointer-events:none}
-.row{margin-bottom:6px}
-.row label{display:flex;justify-content:space-between;align-items:center;
-  font-size:10.3px;color:var(--ink2);margin-bottom:3px}
+.ctl{flex:1;min-height:0;overflow:auto;padding:10px 14px 12px}
+.ctl.off{opacity:.62}
+.row{margin-bottom:9px}
+.row label{display:flex;justify-content:space-between;align-items:center;gap:8px;
+  font-size:11.4px;color:var(--ink2);margin-bottom:4px}
+.row label>span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ent{flex:none}
 .ent{display:inline-flex;align-items:center;gap:5px}
-.num{width:62px;text-align:right;background:var(--pan);color:var(--ink);
-  font:700 11px/1.3 "Consolas",ui-monospace,monospace;border:1px solid var(--line);padding:1px 3px}
+.num{width:68px;text-align:right;background:var(--pan);color:var(--ink);
+  font:700 12.6px/1.35 "Consolas",ui-monospace,monospace;border:1px solid var(--line);padding:3px 5px}
 .num:focus{outline:none;border-color:var(--ok)}
 .num.bad{border-color:var(--al)}
-.ent i{font-style:normal;font:600 9.3px/1 "Consolas",ui-monospace,monospace;
-  color:var(--ink3);min-width:42px}
+.ent i{font-style:normal;font:600 10.2px/1 "Consolas",ui-monospace,monospace;
+  color:var(--ink3);min-width:44px}
 input[type=range]{width:100%;height:16px;-webkit-appearance:none;background:transparent;margin:0}
 input[type=range]::-webkit-slider-runnable-track{height:2px;background:var(--line)}
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:10px;height:10px;
   background:var(--ink);margin-top:-4px;cursor:pointer}
 input[type=range]::-moz-range-track{height:2px;background:var(--line)}
 input[type=range]::-moz-range-thumb{width:10px;height:10px;background:var(--ink);border:0;cursor:pointer}
-.seq{flex:none;border-top:1px solid var(--line2);padding:8px 12px 10px;max-height:150px;overflow:auto}
+.seq{flex:none;border-top:1px solid var(--line2);padding:10px 14px 12px;max-height:196px;overflow:auto}
 .seq ol{margin:0;padding-left:15px}
-.seq li{font-size:10.2px;line-height:1.45;margin-bottom:3px;color:var(--ink2)}
+.seq li{font-size:11.3px;line-height:1.5;margin-bottom:4px;color:var(--ink2)}
 .seq li b{color:var(--ink)}
-.seq .none{font-size:10.3px;color:var(--ok)}
-.fpiline{font-size:10.4px;margin-bottom:5px;color:var(--ink2)}
+.seq .none{font-size:11.3px;color:var(--ok)}
+.fpiline{font-size:11.6px;margin-bottom:7px;color:var(--ink2)}
 
 .kpis{flex:none;display:flex;border-top:1px solid var(--line)}
-.kpi{flex:1;padding:6px 10px;border-right:1px solid var(--line2)}
+.kpi{flex:1;padding:9px 13px;border-right:1px solid var(--line2)}
 .kpi:last-child{border-right:0}
-.kpi .k{font:600 8.3px/1.4 "Consolas",ui-monospace,monospace;letter-spacing:.1em;color:var(--ink3)}
-.kpi .v{font:700 17px/1.12 "Consolas",ui-monospace,monospace;margin-top:1px}
-.kpi .u{font-size:9.5px;color:var(--ink3);font-weight:400}
+.kpi .k{font:600 9.4px/1.4 "Consolas",ui-monospace,monospace;letter-spacing:.09em;color:var(--ink3)}
+.kpi .v{font:700 22px/1.14 "Consolas",ui-monospace,monospace;margin-top:3px}
+.kpi .u{font-size:11px;color:var(--ink3);font-weight:400}
 .kpi.w .v{color:var(--wa)} .kpi.a .v{color:var(--al)}
 .kpi.hero{background:#080D10;border-right:1px solid #2A3B46}.kpi.hero .v{color:var(--ok)}
-.note{flex:none;border-top:1px solid var(--line);padding:7px 13px 8px;font-size:9px;
-  line-height:1.45;color:var(--ink3);max-height:88px;overflow:auto}
+.note{flex:none;border-top:1px solid var(--line);padding:9px 15px 10px;font-size:10.2px;
+  line-height:1.52;color:var(--ink3);max-height:104px;overflow:auto}
 .note b{color:var(--ink2)}
 text{font-family:"Consolas",ui-monospace,monospace}
 .lbl{font-family:"ABBvoice","Segoe UI",system-ui,Arial,sans-serif}
@@ -115,6 +122,8 @@ text{font-family:"Consolas",ui-monospace,monospace}
   </div>
   <button class="tbtn live" id="play">&#9654; PLAY</button>
   <button class="tbtn" id="spd">10 min/s</button>
+  <button class="tbtn live" id="sync">PLANT CLOCK</button>
+  <span class="phz"><input type="number" id="poff" step="0.5" value="0" title="phase trim, hours"><i>h</i></span>
   <input type="range" id="scrub" min="0" max="8064" step="1" value="0">
   <div class="clk" id="clk"></div>
 </div>
@@ -124,7 +133,7 @@ text{font-family:"Consolas",ui-monospace,monospace}
   <div class="rail">
     <h2>WHAT-IF SCENARIOS</h2>
     <div class="scn" id="scn"></div>
-    <h2>INPUT VARIABLES</h2>
+    <h2 id="ctlh">INPUT VARIABLES</h2>
     <div class="ctl" id="ctl"></div>
     <h2>ORDER OF APPEARANCE</h2>
     <div class="seq" id="seq"></div>
@@ -163,6 +172,7 @@ var TAGS=[
  {id:"TI9381",t:"800-TI-9381",d:"Oil temperature",            u:"°C",dec:1,hi:44.0, al:59.0, w:1, cfg:1},
  {id:"PI9371",t:"800-PI-9371",d:"Feed shoe pressure",         u:"kPa",dec:0,hi:18470,al:14500,w:0, cfg:1},
  /* present on the asset, absent from the simulator and from EFM 17 */
+ {id:"WI9303",t:"800-WI-9303",d:"Feed rate to SAG",         u:"t/h",dec:0,hi:2333,al:1600,w:0,cfg:0},
  {id:"JI9301",t:"800-JI-9301",d:"Drive power",                u:"MW", dec:2,hi:17.5, al:19.4, w:0, cfg:0},
  {id:"SI9302",t:"800-SI-9302",d:"Mill speed",                 u:"rpm",dec:2,hi:9.37, al:12.0, w:0, cfg:0},
  {id:"FI9385",t:"800-FI-9385",d:"High-pressure flow",         u:"L/min",dec:0,hi:720,al:480, w:0, cfg:0},
@@ -176,27 +186,44 @@ var WSUM=TAGS.reduce(function(a,t){return a+(t.cfg?t.w:0);},0);
 var SIMSET={ZI9376:1,TI9375:1,AI9383:1,PI9374:1,PI9380:1,PI9384:1,ZI9373:1,LI9382:1,TI9372:1,TI9381:1,PI9371:1};
 
 /* ══════════ 3. SIMULATOR REPLAY ══════════ */
-/* 258 tags at 1 min, 8065 samples = 5 d 14 h 25 min, then the sequence restarts. */
+/* The plant simulator runs 258 tags at one minute, 8 065 samples per tag
+   (5 d 14 h 25 min), and restarts at the end of the sequence.
+   Anchored to the simulator file for every tag: the value at the start, at mid-cycle and
+   at the end, and the minimum and maximum reached over the whole cycle. The path between
+   those anchors is reconstructed with an operational rhythm (daily, shift and short cycle)
+   whose amplitude narrows as each variable stiffens, plus minute noise, and is then
+   clamped to the recorded minimum and maximum.                                            */
 var CYC=8065;
 function nz(i,k){var x=Math.sin(i*12.9898+k*78.233)*43758.5453; return (x-Math.floor(x))*2-1;}
+function osc(i,k){     /* operational rhythm: daily, shift and short cycle.
+                          Zero phase, so every tag starts exactly on its recorded value,
+                          and distinct periods per tag, so they drift apart as in a plant. */
+  var s = 0.55*Math.sin(2*Math.PI*i/(1440+37*k))
+        + 0.28*Math.sin(2*Math.PI*i/( 487+23*k))
+        + 0.17*Math.sin(2*Math.PI*i/( 149+11*k));
+  s *= 1.38;                       /* so the recorded extremes are actually reached */
+  return s<-1?-1:(s>1?1:s);
+}
+function cl(v,lo,hi){ return v<lo?lo:(v>hi?hi:v); }
 function ramp(u,a,b,e){ if(u<=a)return 0; if(u>=b)return 1; return Math.pow((u-a)/(b-a),e); }
-/* trajectories fitted to the start / mid / end values of the simulator file */
+
 function replay(i){
   var u=i/CYC, o={};
-  o.PI9384 =  62 + 120*Math.pow(u,1.55)      + 3.2*nz(i,1);
-  o.LI9382 =  76 -  41*Math.pow(u,1.20)      + 1.1*nz(i,2);
-  o.PI9380 = 575 - 165*Math.pow(u,1.30)      + 7.5*nz(i,3);
-  o.AI9383 =  16 +   6*Math.pow(u,1.45)      + 0.25*nz(i,4);
-  o.TI9381 =  44.0                           + 2.6*nz(i,5)+1.4*Math.sin(u*31.4);
-  var rf=ramp(u,0.62,1.00,1.75);            /* film:        first to move   */
-  var rp=ramp(u,0.64,1.00,1.60);            /* pressure:    follows         */
-  var rt=ramp(u,0.70,1.00,1.45);            /* temperature: arrives last    */
-  o.ZI9376 = 0.170 - 0.130*rf + 0.0022*nz(i,6);
-  o.PI9374 = 18214 - 3630*rp  + 22*nz(i,7);
-  o.TI9375 = 53.1  + 33.8*rt  + 0.35*nz(i,8);
-  o.ZI9373 = 0.180            + 0.0020*nz(i,9);
-  o.PI9371 = 18470            + 20*nz(i,10);
-  o.TI9372 = 51.9             + 0.30*nz(i,11);
+  /* --- lubrication unit: degrades monotonically, variability narrows as it clogs --- */
+  o.PI9384 = cl( 62 + 118*Math.pow(u,1.55) + 25.0*(1-0.60*u)*osc(i,1) + 2.6*nz(i,1), 43.5, 190.6);
+  o.LI9382 = cl( 76 -  41*Math.pow(u,1.20) + 12.0*(1-0.60*u)*osc(i,2) + 1.0*nz(i,2), 32.1,  84.7);
+  o.PI9380 = cl(575 - 165*Math.pow(u,1.30) + 41.0*(1-0.40*u)*osc(i,3) + 5.0*nz(i,3),372.6, 615.8);
+  o.AI9383 = cl( 16 +   6*Math.pow(u,1.45) +  1.60*(1-0.05*u)*osc(i,4)+ 0.18*nz(i,4), 14.7,  23.2);
+  o.TI9381 = cl(44.2                       +  7.00*osc(i,5)           + 1.10*nz(i,5), 36.8,  51.6);
+  /* --- discharge bearing: late onset, film first, pressure next, temperature last --- */
+  var rf=ramp(u,0.62,1.00,1.75), rp=ramp(u,0.64,1.00,1.60), rt=ramp(u,0.70,1.00,1.45);
+  o.ZI9376 = 0.170 - 0.130*rf + 0.0045*(1-0.60*rf)*osc(i,6) + 0.0016*nz(i,6);
+  o.PI9374 = 18214 - 3630*rp  +   95*(1-0.60*rp)*osc(i,7)   +   22*nz(i,7);
+  o.TI9375 =  53.1 +  33.8*rt +  0.85*(1-0.50*rt)*osc(i,8)  + 0.28*nz(i,8);
+  /* --- feed bearing: healthy control, operational variation only --- */
+  o.ZI9373 = 0.180 + 0.0026*osc(i,9)  + 0.0009*nz(i,9);
+  o.PI9371 = 18470 +     40*osc(i,10) +     12*nz(i,10);
+  o.TI9372 =  51.9 +   0.32*osc(i,11) +   0.12*nz(i,11);
   return o;
 }
 
@@ -225,7 +252,7 @@ function physics(S){
   V.TI9372=o.Toil+8+40*Math.max(0,(0.180/Math.max(hF,0.001))-1);
   V.TI9375=o.Toil+9+40*Math.max(0,(0.170/Math.max(hD,0.001))-1);
   V.PI9380=575-150*Math.max(0,Math.min(1,(S.dp-60)/120))-60*Math.max(0,Math.min(1,(78-S.lvl)/48)); V.PI9384=S.dp; V.LI9382=S.lvl; V.AI9383=S.iso;
-  V.JI9301=o.P; V.SI9302=o.N; V.FI9385=o.Q; V.XI9386=S.nHP;
+  V.WI9303=o.P*1000/7.5; V.JI9301=o.P; V.SI9302=o.N; V.FI9385=o.Q; V.XI9386=S.nHP;
   V.TI9310=o.Tsta; V.ZI9311=o.gap; V.TI9312=S.cc?34:56;
   o.V=V; return o;
 }
@@ -367,9 +394,38 @@ d+=TL(608,282,"SAG MILL 800-ML-903",{"text-anchor":"middle","font-size":13,fill:
      {"text-anchor":"middle","font-size":8.5,fill:"#AFC4D0"});
 d+=TL(398,334,"FEED TRUNNION",{"font-size":7.5})+TL(1004,334,"DISCH. TRUNNION",{"font-size":7.5});
 
+
+/* feed conveyor 800-CV-903 */
+(function(){
+  var ax=66, ay=224, bx=344, by=102;
+  var dx=bx-ax, dy=by-ay, L0=Math.sqrt(dx*dx+dy*dy), ux=dx/L0, uy=dy/L0;
+  var px=-uy, py=ux;                       /* perpendicular, up-left */
+  function pt(t,o){ return [(ax+ux*L0*t+px*o).toFixed(1), (ay+uy*L0*t+py*o).toFixed(1)]; }
+  var t0=pt(0,-14), t1=pt(1,-14), b0=pt(0,14), b1=pt(1,14);
+  var m0=pt(0.06,-23), m1=pt(0.94,-23), n0=pt(0.06,-14), n1=pt(0.94,-14);
+  /* stringer */
+  d+=P("M"+pt(0,16)[0]+" "+pt(0,16)[1]+"L"+pt(1,16)[0]+" "+pt(1,16)[1],
+      {stroke:"#3E5664","stroke-width":3});
+  /* ore bed */
+  d+=P("M"+m0[0]+" "+m0[1]+"L"+m1[0]+" "+m1[1]+"L"+n1[0]+" "+n1[1]+"L"+n0[0]+" "+n0[1]+"Z",
+      {fill:"#8A6B4E",stroke:"none",opacity:".85"});
+  /* belt carrying and return runs */
+  d+=P("M"+t0[0]+" "+t0[1]+"L"+t1[0]+" "+t1[1],
+      {stroke:"#B08968","stroke-width":2.2,id:"beltTop",class:"anim"})
+   +P("M"+b0[0]+" "+b0[1]+"L"+b1[0]+" "+b1[1],{stroke:"#6E5540","stroke-width":1.6});
+  /* pulleys and idlers */
+  d+=C(ax,ay,14,{fill:"url(#gTr)",stroke:"#6A8796","stroke-width":1.1})
+   +C(bx,by,14,{fill:"url(#gTr)",stroke:"#6A8796","stroke-width":1.1})
+   +C(bx+22,by+14,9,{fill:"#141C21",stroke:"#6A8796","stroke-width":1})
+   +T(bx+22,by+17.5,"M",{"text-anchor":"middle","font-size":8.5,"font-weight":"700",fill:"#C3D4DD"});
+  for(var k=1;k<=4;k++){ var q=pt(k/5,16); d+=C(+q[0],+q[1],4,{stroke:"#55707E","stroke-width":1}); }
+  d+=TL(50,262,"800-CV-903",{"font-size":9,fill:"#8FA6B2","letter-spacing":".06em"})
+   +TL(50,274,"FEED CONVEYOR",{"font-size":8.4,fill:"#5E7683"});
+})();
+
 /* feed, trommel, discharge */
 var PU="#B08968";
-d+=P("M352 108H436L468 242H420Z",{fill:"url(#gHd)",stroke:PU,opacity:".92"})+TL(352,100,"FEED",{fill:"#C79E7C"})
+d+=P("M352 108H436L468 242H420Z",{fill:"url(#gHd)",stroke:PU,opacity:".92"})
  +R(1050,240,110,80,{fill:"url(#gTr)",stroke:"#6A8796","stroke-width":1.3})+R(1050,240,110,80,{fill:"url(#mesh)",stroke:"none"})+'<ellipse cx="1160" cy="280" rx="9" ry="40" fill="#24363F" stroke="#6A8796" stroke-width=".9"/>'
  +TL(1105,233,"TROMMEL",{"text-anchor":"middle","font-size":9})
  +P("M1058 320H1152L1136 400H1074Z",{fill:"url(#gHd)",stroke:PU,opacity:".9"})
@@ -424,7 +480,7 @@ d+=R(58,336,112,40,{id:"grease",fill:"#141C21"})
 ["ZI9376","PI9374","TI9375"].forEach(function(id,k){ d+=bub(1096+k*106,120,id); });
 d+=bub(104,434,"TI9381")+bub(202,434,"AI9383")+bub(300,434,"PI9384")+bub(398,434,"LI9382");
 d+=bub(506,566,"PI9380")+bub(594,512,"FI9385")+bub(594,592,"XI9386");
-d+=bub(560,104,"JI9301")+bub(916,104,"SI9302");
+d+=bub(560,104,"JI9301")+bub(916,104,"SI9302")+bub(228,292,"WI9303");
 d+=bub(700,512,"TI9310")+bub(822,512,"ZI9311")+bub(1320,452,"TI9312");
 
 /* legend */
@@ -445,6 +501,10 @@ svg.innerHTML=d;
 var S={Jc:0.26,Jb:0.14,phi:0.733,nHP:3,split:0,dp:60,lvl:78,iso:16,cool:1,nCool:4,cc:true,Twin:28,Tcold:false};
 var BASE=JSON.parse(JSON.stringify(S));
 var MODE="live", tmin=0, playing=false, SPD=[60,600,1800,3600], spi=1, last=0;
+/* the simulator sequence restarted at 2026-09-23 00:00 UTC; from that anchor the cycle
+   position is deterministic, so the twin can phase-lock to the plant without an API.   */
+var ANCHOR=Date.UTC(2026,8,23,0,0,0), POFF=0, SYNC=true;
+function clockPos(){ var m=(Date.now()-ANCHOR)/60000 + POFF*60; return ((m%CYC)+CYC)%CYC; }
 
 var SLID=[
  {k:"Jc",   t:"Total charge filling",   u:"%",     min:0.14,max:0.36,st:0.005,sc:100,dec:1},
@@ -475,6 +535,7 @@ var ESC=[
 ];
 
 var ctl=document.getElementById("ctl"), scn=document.getElementById("scn");
+function toWhat(){ if(MODE!=="what") setMode("what"); }
 SLID.forEach(function(sl){
   var w=document.createElement("div"); w.className="row";
   var a=sl.min*sl.sc, b=sl.max*sl.sc;
@@ -484,14 +545,16 @@ SLID.forEach(function(sl){
     +'<input type="range" id="s_'+sl.k+'" min="'+sl.min+'" max="'+sl.max+'" step="'+sl.st+'">';
   ctl.appendChild(w);
   var rg=w.querySelector("input[type=range]"), nb=w.querySelector("input[type=number]");
-  rg.addEventListener("input",function(){ S[sl.k]=parseFloat(this.value); mark(-1); render(); });
+  rg.addEventListener("input",function(){ toWhat(); S[sl.k]=parseFloat(this.value); mark(-1); render(); });
   function commit(){
+    toWhat();
     var x=parseFloat(nb.value);
     if(isNaN(x)){ nb.classList.remove("bad"); render(); return; }
     var cl=Math.max(a,Math.min(b,x)); nb.classList.toggle("bad",cl!==x);
     S[sl.k]=Math.max(sl.min,Math.min(sl.max,Math.round((cl/sl.sc)/sl.st)*sl.st));
     mark(-1); render(); setTimeout(function(){nb.classList.remove("bad");},1000);
   }
+  nb.addEventListener("focus",toWhat);
   nb.addEventListener("change",commit);
   nb.addEventListener("keydown",function(e){ if(e.key==="Enter"){commit();nb.blur();} });
 });
@@ -500,7 +563,7 @@ SLID.forEach(function(sl){
   w.innerHTML='<label><span>'+t[1]+'</span></label><button id="s_'+t[0]+'" class="tbtn" '
     +'style="width:100%;padding:5px"></button>';
   ctl.appendChild(w);
-  w.querySelector("button").addEventListener("click",function(){ S[t[0]]=!S[t[0]]; mark(-1); render(); });
+  w.querySelector("button").addEventListener("click",function(){ toWhat(); S[t[0]]=!S[t[0]]; mark(-1); render(); });
 });
 ESC.forEach(function(e,i){
   var b=document.createElement("button"); b.textContent=e.n; if(i===0) b.className="wide";
@@ -517,19 +580,37 @@ function mark(i){ var bs=scn.querySelectorAll("button");
 
 /* ══════════ 8. TOOLBAR ══════════ */
 var scrub=document.getElementById("scrub"), clk=document.getElementById("clk"),
-    play=document.getElementById("play"), spd=document.getElementById("spd");
+    play=document.getElementById("play"), spd=document.getElementById("spd"),
+    syncB=document.getElementById("sync"), poff=document.getElementById("poff");
+function setSync(on){
+  SYNC=on; syncB.className = on ? "tbtn live" : "tbtn";
+  scrub.disabled=on; play.disabled=on; play.style.opacity=on?.45:1;
+  if(on){ if(MODE!=="live") setMode("live"); playing=false;
+          play.innerHTML="&#9654; PLAY"; play.className="tbtn"; tmin=clockPos(); scrub.value=Math.round(tmin); }
+  render();
+}
+syncB.addEventListener("click",function(){ setSync(!SYNC); });
+poff.addEventListener("change",function(){
+  var v=parseFloat(this.value); POFF=isNaN(v)?0:v;
+  if(SYNC){ tmin=clockPos(); scrub.value=Math.round(tmin); } render();
+});
 function setMode(m){
   MODE=m;
   var bs=document.querySelectorAll("#mode button");
   for(var i=0;i<bs.length;i++) bs[i].className = bs[i].dataset.m===m?"on":"";
   ctl.className = m==="what" ? "ctl" : "ctl off";
-  if(m==="what"){ playing=false; play.innerHTML="&#9654; PLAY"; play.className="tbtn live"; }
+  var ch=document.getElementById("ctlh");
+  if(ch) ch.textContent = m==="what" ? "INPUT VARIABLES" : "INPUT VARIABLES  \u00B7  EDIT ANY FIELD TO SWITCH TO WHAT-IF";
+  if(m==="what"){ playing=false; SYNC=false; syncB.className="tbtn";
+                  scrub.disabled=false; play.disabled=false; play.style.opacity=1;
+                  play.innerHTML="&#9654; PLAY"; play.className="tbtn live"; }
   render();
 }
 document.querySelectorAll("#mode button").forEach(function(b){
   b.addEventListener("click",function(){ setMode(b.dataset.m); });
 });
 play.addEventListener("click",function(){
+  if(SYNC) return;
   if(MODE!=="live") setMode("live");
   playing=!playing;
   play.innerHTML = playing ? "&#10073;&#10073; PAUSE" : "&#9654; PLAY";
@@ -538,11 +619,13 @@ play.addEventListener("click",function(){
 });
 spd.addEventListener("click",function(){ spi=(spi+1)%SPD.length; spd.textContent=(SPD[spi]/60)+" min/s"; });
 scrub.addEventListener("input",function(){
+  if(SYNC) return;
   if(MODE!=="live") setMode("live");
   tmin=parseInt(this.value,10); render();
 });
 function tick(now){
-  if(playing && MODE==="live"){
+  if(SYNC && MODE==="live"){ tmin=clockPos(); scrub.value=Math.round(tmin); render(); last=now; }
+  else if(playing && MODE==="live"){
     var dt=(now-last)/1000; last=now;
     tmin=(tmin + dt*SPD[spi]/60) % CYC;
     scrub.value=Math.round(tmin); render();
@@ -704,8 +787,8 @@ function render(){
 
   var dd=Math.floor(tmin/1440), hh=Math.floor((tmin%1440)/60), mm=Math.floor(tmin%60);
   clk.innerHTML = live
-    ? "DAY "+dd+" "+String(hh).padStart(2,"0")+":"+String(mm).padStart(2,"0")
-      +" <small>of 5 d 14 h cycle</small>"
+    ? (SYNC?"<small>PLANT CLOCK </small>":"")+"DAY "+dd+" "+String(hh).padStart(2,"0")+":"
+      +String(mm).padStart(2,"0")+" <small>of 5 d 14 h cycle</small>"
     : "<small>what-if, clock held</small>";
 }
 
@@ -715,14 +798,18 @@ document.getElementById("note").innerHTML =
  +'weighted as the model weights them (\u03A3w = '+WSUM+'). The <b>FPI</b> beside it is a transparent proxy, 100 \u2212 HI; the deployed model derives its own FPI '
  +'from the clustering, so the two track each other rather than matching digit for digit. <b>Lead time</b> is the time from the current position of the cycle '
  +'until the first configured tag reaches its alarm value. '
- +'<b>Live replay</b> drives the eleven tags from the plant simulator sequence \u2014 258 tags at one minute, 8 065 samples (5 d 14 h 25 min) that restart at the end of the cycle. '
- +'Start, mid and end values come from the simulator file; the shape between them is an interpolation, and the discharge-bearing collapse is given a deliberate order \u2014 '
- +'film first, shoe pressure next, temperature last \u2014 because thermal inertia lags. Tags with a dashed outline exist on the asset but are in neither the EFM nor the simulator. '
+ +'<b>Plant clock.</b> The simulator sequence restarted at 2026-09-23 00:00 UTC, so from that anchor the position in the cycle is deterministic '
+ +'and the twin phase-locks to the plant from the browser clock, with no API. The trim field shifts the phase in hours when the anchor or the time zone is off. '
+ +'<b>Live replay</b> reproduces the plant simulator sequence: 258 tags at one minute, 8 065 samples per tag (5 d 14 h 25 min), restarting at the end of the cycle. '
+ +'Anchored to the simulator file for every tag: the value at the start, at mid-cycle and at the end, and the minimum and maximum reached over the whole cycle. '
+ +'The path between those anchors is reconstructed with an operational rhythm (daily, shift and short cycle) whose amplitude narrows as each variable stiffens, plus minute noise, '
+ +'clamped to the recorded minimum and maximum. The discharge-bearing collapse keeps a deliberate order \u2014 film first, shoe pressure next, temperature last \u2014 because thermal inertia lags. '
+ +'Tags with a dashed outline exist on the asset but are in neither the EFM nor the simulator. '
  +'<b>What-if</b> uses the Austin correlation for power, K calibrated to 17.50 MW at J = 26 %, balls 14 %, 73.3 % N<sub>c</sub>, and a hydrostatic film h \u221D (Q\u00B7\u03BC/p)<sup>1/3</sup> '
  +'referred to 0.170 mm at design. <b>To confirm:</b> number and area of shoes, and the flow and pressure of the high-pressure unit. '
  +'<b>Not modelled:</b> internal classification, pebble crushing, liner wear, start-up dynamics or the real drive protection.';
 
-setMode("live"); mark(-1); render(); requestAnimationFrame(tick);
+setMode("live"); mark(-1); setSync(true); requestAnimationFrame(tick);
 })();
 </script>
 </body>
