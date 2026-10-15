@@ -146,7 +146,7 @@ text{font-family:"Consolas",ui-monospace,monospace}
     <div class="scn" id="scn">SEEDED FAILURE SCENARIO &nbsp;&mdash;&nbsp; NOT THE CURRENT STATE OF THE ASSET</div>
   </div>
   <div class="rt">LIVE TWIN &nbsp;/&nbsp; DWG CA-SAG-GMD-DT-003<br>
-    REV. M &nbsp;/&nbsp; BUILD 2026-10-14 &nbsp;/&nbsp; EFM 17 TAGS</div>
+    REV. N &nbsp;/&nbsp; BUILD 2026-10-14 &nbsp;/&nbsp; EFM 17 TAGS</div>
 </div>
 
 <div class="tbar">
@@ -364,9 +364,22 @@ function showDebug(){
    data, never as instructions.                                               */
 var MSGS=[];
 function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+var APPTOK=null;
+/* The host opens with {from:"FRAME_WIDGET_DASHBOARD", type:"APP_TOKEN_FROM_PARENT"}.
+   It is offering a token to the embedded app, so the app is expected to answer.
+   We do not know its dialect, so we reply in several shapes and see which one
+   makes it send a non-null token or a payload. */
 function hello(){
+  var me = (window.name||"");
+  var tries = [
+    {source:"sag903-twin", type:"ready", want:"data"},
+    {from:"FRAME_WIDGET_IFRAME", type:"APP_TOKEN_REQUEST", iframeName:me},
+    {from:"FRAME_WIDGET_IFRAME", type:"IFRAME_READY",      iframeName:me},
+    {from:"FRAME_WIDGET_IFRAME", type:"REQUEST_DATA",      iframeName:me},
+    {type:"APP_TOKEN_REQUEST"}, {type:"GET_DATA"}
+  ];
   try{ if(window.parent && window.parent!==window)
-    window.parent.postMessage({source:"sag903-twin",type:"ready",want:"data"},"*"); }catch(e){}
+    tries.forEach(function(m){ window.parent.postMessage(m,"*"); }); }catch(e){}
 }
 window.addEventListener("message", function(ev){
   var d=ev.data, txt;
@@ -376,6 +389,11 @@ window.addEventListener("message", function(ev){
   if(MSGS.length>6) MSGS.shift();
   var obj=d;
   if(typeof obj==="string"){ try{ obj=JSON.parse(obj); }catch(e){ obj=null; } }
+  /* a token from the host is the key to calling the API cross-origin */
+  if(obj && typeof obj==="object" && obj.token){
+    APPTOK=obj.token; KSH.err=null;
+    if(_api) pollApi(decodeURIComponent(_api),"api");
+  }
   if(obj && typeof obj==="object"){
     var rows = Array.isArray(obj) ? obj
              : (obj.data||obj.Data||obj.rows||obj.Rows||obj.result||obj.payload||[obj]);
@@ -390,6 +408,9 @@ function pollApi(url,mode){
   var u=url+(pub?((url.indexOf("?")<0?"?":"&")+"t="+Date.now()):"");
   var o={credentials:pub?"omit":"include",cache:pub?"no-store":"default",
          headers:{Accept:"application/json"}};
+  /* with a bearer token the call no longer needs cookies, which is usually the
+     configuration a platform allows cross-origin */
+  if(!pub && APPTOK){ o.headers.Authorization="Bearer "+APPTOK; o.credentials="omit"; }
   /* KSH app services are published as POST; ?post=1 switches the call over so a
      405 is never mistaken for the browser blocking the request. */
   if(!pub && /[?&]post=1/.test(location.search)){
