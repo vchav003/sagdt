@@ -1,0 +1,1068 @@
+<title>Coordinador de Planta</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: sala de control. Cabecera de mando, franja de indicadores, flowsheet de planta completa a la izquierda,
+   cadena de restricciones y tendencia a la derecha, bitácora y casos de uso abajo. Tema claro, fondo blanco. */
+:root{
+  --bg:#FFFFFF; --panel:#FFFFFF; --panel2:#FFFFFF; --line:#E1E3E8; --fg:#1A1A1A; --muted:#5F6368; --dim:#8F9399;
+  --brand:#FF000F; --genix:#3366FF; --water:#2F6DB5; --conc:#B87333; --ore:#8C8C8C; --tail:#7A7A7A;
+  --ok:#0A9A17; --warn:#D99A00; --hot:#F06A00; --crit:#E0202F;
+  --f-ui:"ABBvoice","ABBvoiceOffice",Arial,sans-serif; --f-data:"ABBvoice","ABBvoiceOffice",Arial,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-ui);font-size:14px;line-height:1.45}
+.wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:14px 28px;max-width:none;width:100%;margin:0;display:flex;flex-direction:column;gap:14px}
+header.top{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:10px}
+.brand{display:flex;flex-direction:column;gap:2px;min-width:0}
+.brand .eyebrow{font-size:12px;color:var(--muted)}
+.brand h1{margin:0;font-size:24px;font-weight:600;letter-spacing:.01em;text-wrap:balance}
+.brand p{margin:0;color:var(--muted);font-size:13px}
+.abb{font-weight:700;color:var(--brand);font-size:22px;letter-spacing:.06em}
+.src{font-family:var(--f-data);font-size:11px;padding:4px 8px;border:1px solid var(--line);border-radius:0;color:var(--warn)}
+.controls{display:flex;flex-direction:column;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:0;padding:12px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:inherit;font-size:12.5px;color:var(--fg);background:var(--panel2);border:1px solid var(--line);border-radius:0;padding:6px 10px;cursor:pointer}
+.chip:hover{border-color:var(--muted)}
+.chip[aria-pressed="true"]{border-color:var(--genix);color:var(--genix);background:#EEF2FF}
+.chip:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--genix);outline-offset:2px}
+.row{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:0;overflow:hidden}
+.seg button{font:inherit;font-size:13px;background:var(--panel2);color:var(--muted);border:0;padding:7px 14px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--genix);color:#fff;font-weight:600}
+.seg button.sin[aria-pressed="true"]{background:var(--muted);color:#fff}
+.btn{font:inherit;font-size:13px;background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:0;padding:7px 14px;cursor:pointer;min-width:90px}
+.scrub{flex:1 1 260px;display:flex;align-items:center;gap:10px;min-width:0}
+.scrub input{flex:1;min-width:0;accent-color:var(--genix)}
+.clock{font-family:var(--f-data);font-size:13px;color:var(--fg);min-width:96px;text-align:right}
+label.meta{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted)}
+label.meta input{width:120px;accent-color:var(--brand)}
+.desc{margin:0;color:var(--muted);font-size:13px;max-width:110ch}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:0;padding:10px 12px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.kpi .k{font-size:12px;color:var(--muted)}
+.kpi .v{font-family:var(--f-data);font-size:22px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.kpi .s{font-size:12px;color:var(--muted);min-height:1.4em}
+.logo{height:26px;width:auto}
+.main{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:14px}
+@media (max-width:1100px){.main{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:0;padding:12px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.panel h2{margin:0;font-size:14px;font-weight:600;color:var(--fg)}
+.panel h2 b{color:var(--fg);font-weight:600}
+.flowbox{overflow-x:auto}
+.flowbox svg{display:block;width:100%;min-width:900px;height:auto}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:18px;height:3px;vertical-align:middle;margin-right:6px}
+.side{display:flex;flex-direction:column;gap:14px;min-width:0}
+.bars{display:flex;flex-direction:column;gap:7px}
+.bar{display:grid;grid-template-columns:130px minmax(0,1fr) 64px;gap:8px;align-items:center;font-size:12.5px}
+.bar .lab{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar .track{position:relative;height:12px;background:var(--panel2);border-radius:2px}
+.bar .fill{position:absolute;inset:0 auto 0 0;background:#C3C7CF;border-radius:2px}
+.bar.isbind .fill{background:var(--crit)}
+.bar.isbind .lab{color:var(--fg)}
+.bar .val{font-family:var(--f-data);text-align:right;font-variant-numeric:tabular-nums}
+.bar .mk{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--fg);opacity:.8}
+.note{font-size:12px;color:var(--muted);margin:0}
+.chart svg{width:100%;height:auto;display:block}
+.chart{cursor:crosshair}
+.lower{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.6fr);gap:14px}
+@media (max-width:1100px){.lower{grid-template-columns:minmax(0,1fr)}}
+.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;max-height:430px;overflow:auto}
+.log li{display:grid;grid-template-columns:74px minmax(0,1fr);gap:10px;font-size:13px;padding:8px 10px;background:var(--panel2);border-radius:0;border-left:3px solid var(--line)}
+.log li.alert{border-left-color:var(--genix)}
+.log li.fail{border-left-color:var(--crit)}
+.log li.action{border-left-color:var(--ok)}
+.log .t{font-family:var(--f-data);font-size:12px;color:var(--muted)}
+.log .m{display:inline-block;font-family:var(--f-data);font-size:10.5px;color:var(--genix);border:1px solid #C5D2FF;border-radius:2px;padding:0 5px;margin-right:6px}
+.log .a{color:var(--muted);font-size:12px}
+.empty{color:var(--muted);font-size:13px}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:12.5px}
+.sel{font:inherit;font-size:13px;background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:0;padding:6px 8px;max-width:100%}
+.st2{display:inline-block;font-size:11.5px;padding:1px 6px;border:1px solid;white-space:nowrap}
+.pr{display:inline-block;white-space:nowrap;min-width:20px;text-align:center;font-weight:600;color:#1A1A1A;padding:0 4px}
+table.noti td{white-space:normal}
+table.noti td.n{white-space:nowrap}
+.hip{display:inline-block;min-width:34px;text-align:center;font-family:var(--f-data);font-size:11.5px;border-radius:2px;padding:1px 4px;color:#0D1117}
+th,td{text-align:left;vertical-align:top;padding:7px 8px;border-bottom:1px solid var(--line)}
+th{font-size:12px;color:var(--muted);font-weight:500}
+td.n{font-family:var(--f-data);color:var(--muted)}
+tr.hl td{background:#EEF2FF}
+.mod{color:var(--genix)}
+.sup{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px 18px;font-size:12.5px;color:var(--muted)}
+.sup label{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.sup input{width:90px;font:inherit;font-family:var(--f-data);background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:0;padding:4px 6px;text-align:right}
+.mono{font-family:var(--f-data)}
+
+.ctx{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
+.cx{border:1px solid var(--line);border-radius:0;padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.cx.hl{border-color:var(--brand)}
+.cx .k{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.cx .v{font-family:var(--f-data);font-size:19px}
+.cx .s{font-size:12px;color:var(--muted)}
+.src2{grid-column:1/-1}
+.tri{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+@media (max-width:1200px){.tri{grid-template-columns:minmax(0,1fr)}}
+.wfb .fill{background:var(--hot)}
+.grps{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,3fr) minmax(0,6fr) minmax(0,3fr);gap:14px}
+@media (max-width:1300px){.grps{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+@media (max-width:700px){.grps{grid-template-columns:minmax(0,1fr)}}
+.grp{display:flex;flex-direction:column;gap:6px;min-width:0}
+.gh{font-size:12px;color:var(--muted);border-bottom:1px solid var(--line);padding-bottom:4px}
+.mets{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.mt{background:var(--panel2);padding:8px 10px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.mt .k{font-size:12px;color:var(--muted)}
+.mt .v{font-size:19px;font-weight:600;font-variant-numeric:tabular-nums}
+.mt .s{font-size:11.5px;color:var(--muted)}
+.risk{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+.risk li{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:10px;align-items:start;padding:8px 10px;background:var(--panel2);border-radius:0;font-size:12.5px}
+.risk li.on{outline:1px solid var(--genix)}
+.risk .rk{font-family:var(--f-data);color:var(--muted)}
+.risk .tn{font-family:var(--f-data);text-align:right;white-space:nowrap}
+.risk .tn small{display:block;color:var(--muted);font-size:11px}
+.arch{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.ly{background:var(--panel2);border-radius:0;padding:10px 12px;display:flex;flex-direction:column;gap:6px;font-size:12.5px;min-width:0}
+.ly p{margin:0;color:var(--muted)}
+.st{align-self:flex-start;font-family:var(--f-data);font-size:10.5px;padding:1px 6px;border-radius:2px;border:1px solid}
+.st.ok{color:var(--ok);border-color:var(--ok)} .st.mid{color:var(--warn);border-color:var(--warn)} .st.no{color:var(--muted);border-color:var(--muted)}
+.arch2{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:22px;position:relative}
+@media (max-width:900px){.arch2{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+@media (max-width:520px){.arch2{grid-template-columns:minmax(0,1fr)}}
+.stp{background:var(--panel2);border:1px solid var(--line);padding:10px 12px;display:flex;flex-direction:column;gap:5px;min-width:0;position:relative}
+.stp.gx{border-color:var(--genix)}
+.stp .n{font-size:11.5px;color:var(--genix)}
+.stp h3{margin:0;font-size:14px;font-weight:600}
+.stp p{margin:0;font-size:12px;color:var(--muted)}
+.stp .lv{font-size:12.5px;color:var(--fg);font-variant-numeric:tabular-nums}
+@media (min-width:901px){.stp:not(:last-child)::after{content:"";position:absolute;right:-18px;top:50%;width:14px;height:2px;background:var(--genix)}
+.stp:not(:last-child)::before{content:"";position:absolute;right:-19px;top:calc(50% - 4px);border-left:6px solid var(--genix);border-top:5px solid transparent;border-bottom:5px solid transparent}}
+.gxm{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:14px}
+@media (max-width:1100px){.gxm{grid-template-columns:minmax(0,1fr)}}
+.ad{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
+.mc{background:var(--panel2);padding:10px 12px;display:flex;flex-direction:column;gap:6px;min-width:0;border-top:2px solid var(--line)}
+.mc.al{border-top-color:var(--genix)}
+.mc .h{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.mc .h b{font-size:13px}
+.mc .ty{font-size:11px;color:var(--genix);white-space:nowrap}
+.mc .big{font-size:20px;font-weight:600;font-variant-numeric:tabular-nums}
+.mc .sm{font-size:11.5px;color:var(--muted)}
+.pb{display:grid;grid-template-columns:minmax(0,1fr) 90px 40px;gap:8px;align-items:center;font-size:12px}
+.pb .tr{height:8px;background:var(--line);position:relative}
+.pb .tr i{position:absolute;inset:0 auto 0 0;background:var(--genix)}
+.pb .vv{text-align:right;font-variant-numeric:tabular-nums;color:var(--muted)}
+.presc{background:var(--panel2);padding:10px 12px;display:grid;grid-template-columns:150px minmax(0,1fr);gap:6px 12px;font-size:12.5px;border-left:3px solid var(--genix)}
+.presc .k{color:var(--muted)}
+@media (max-width:600px){.presc{grid-template-columns:minmax(0,1fr)}}
+.adh{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;align-items:center}
+.adh .sub{font-size:12px;color:var(--muted)}
+.qs{display:flex;flex-direction:column;gap:6px}
+.qs button{font:inherit;font-size:12.5px;text-align:left;background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:0;padding:8px 10px;cursor:pointer}
+.qs button:hover,.qs button[aria-pressed="true"]{border-color:var(--genix)}
+.ans{background:#F5F7FF;border:1px solid #C5D2FF;padding:10px 12px;font-size:13px;display:flex;flex-direction:column;gap:6px;min-height:120px}
+.ans .who{font-size:11.5px;color:var(--genix)}
+.ans .src3{font-size:11.5px;color:var(--muted)}
+table.mdl td{white-space:normal}
+.mst{display:inline-block;font-size:11px;padding:1px 6px;border:1px solid;white-space:nowrap}
+.mcnt{display:flex;flex-wrap:wrap;gap:8px 20px;font-size:12.5px;color:var(--muted)}
+.mcnt b{color:var(--fg);font-size:16px;font-variant-numeric:tabular-nums;margin-right:4px}
+.flt{display:flex;flex-wrap:wrap;gap:6px}
+@keyframes flow{to{stroke-dashoffset:-28}}
+.fl{fill:none;stroke-dasharray:10 4;animation:flow 1.1s linear infinite}
+.fl.off{animation:none;opacity:.25}
+.paused .fl{animation-play-state:paused}
+@media (prefers-reduced-motion:reduce){.fl{animation:none}}
+svg text{font-family:var(--f-ui)}
+svg .dv{font-family:var(--f-data);font-variant-numeric:tabular-nums}
+
+/* versión blanca: superficies blancas con borde fino */
+.panel,.kpi,.controls{border-color:var(--line);box-shadow:0 1px 2px rgba(16,24,40,.05)}
+.mt,.mc,.risk li,.log li,.presc,.qs button,.ans,.sel,.chip,.btn,.seg button,.sup input{border:1px solid var(--line)}
+.mc.al{border-top:2px solid var(--genix)} .presc{border-left:3px solid var(--genix)}
+.log li.alert{border-left:3px solid var(--genix)} .log li.fail{border-left:3px solid var(--crit)} .log li.action{border-left:3px solid var(--ok)}
+.bar .track,.pb .tr{background:#EEF0F3}
+header.top{border-bottom:2px solid var(--line)}
+th{background:#FAFBFC}
+</style>
+
+<div class="wrap" id="app">
+  <header class="top">
+    <div class="row"><svg class="logo" viewBox="0 0 66.16 25" role="img" aria-label="ABB"><path d="M25.5 24.5 25.5 12.5 28.66 12.5 32.9 24.5ZM24.5 24.5 24.5 12.5 21.34 12.5 17.1 24.5ZM25.5 25.5 25.5 32.5 29.42 32.5 31.18 37.5 37.5 37.5 33.26 25.5ZM24.5 25.5 16.74 25.5 12.5 37.5 18.81 37.5 20.58 32.5 24.5 32.5ZM47.5 12.5 39.5 12.5 39.5 24.5 47.5 24.5ZM56 24.5C55.1623 23.4091 54.0612 22.5489 52.8 22 55.1306 20.2383 55.5918 16.9207 53.8301 14.5901 52.8281 13.2646 51.2616 12.4868 49.6 12.49L48.5 12.49 48.5 24.49ZM39.54 25.5 39.54 37.5 47.54 37.5 47.54 25.5ZM56.66 25.5 48.5 25.5 48.5 37.5 49.6 37.5C54.0569 37.4945 57.6655 33.8769 57.66 29.42 57.6558 28.0457 57.2976 26.6957 56.62 25.5ZM68.54 12.5 60.54 12.5 60.54 24.5 68.54 24.5ZM77 24.5C76.1623 23.4091 75.0612 22.5489 73.8 22 76.1307 20.2383 76.5918 16.9207 74.8301 14.5901 73.8281 13.2646 72.2616 12.4868 70.6 12.49L69.5 12.49 69.5 24.49ZM60.54 25.5 60.54 37.5 68.54 37.5 68.54 25.5ZM77.66 25.5 69.5 25.5 69.5 37.5 70.6 37.5C75.0569 37.4945 78.6655 33.8769 78.66 29.42 78.6558 28.0457 78.2976 26.6957 77.62 25.5Z" fill="#FF000F" transform="translate(-12.5 -12.5)"/></svg><div class="brand">
+      <span class="eyebrow">Genix APM</span>
+      <h1>Coordinador de Planta</h1>
+      <p>Concentradora Cu-Mo, mina a puerto</p>
+    </div></div>
+    <div class="row">
+      <span class="src" id="src">MODO SIMULACIÓN</span>
+    </div>
+  </header>
+
+  <section class="controls" aria-label="Escenarios y reproducción">
+    <div class="row"><label class="meta" for="scSel">Escenario<select id="scSel" class="sel"></select></label><p class="desc" id="desc"></p></div>
+    <div class="row">
+      <div class="seg" role="group" aria-label="Modo">
+        <button id="mCon" aria-pressed="true">Con acción recomendada</button>
+        <button id="mSin" class="sin" aria-pressed="false">Sin intervención</button>
+      </div>
+      <button class="btn" id="play">Reproducir</button>
+      <div class="seg" role="group" aria-label="Velocidad">
+        <button id="v1" aria-pressed="true">x1</button>
+        <button id="v2" aria-pressed="false">x4</button>
+        <button id="v3" aria-pressed="false">x16</button>
+      </div>
+      <label class="meta" for="meta">Meta <span class="mono" id="metaV">7000 t/h</span><input type="range" id="meta" min="5500" max="7600" step="100" value="7000"></label>
+      <label class="meta" for="p80">P80 <span class="mono" id="p80V">180 µm</span><input type="range" id="p80" min="140" max="260" step="5" value="180"></label>
+      <div class="scrub"><input type="range" id="scrub" min="0" max="1000" value="0" aria-label="Tiempo"><span class="clock" id="clock">0,0 h</span></div>
+    </div>
+  </section>
+
+  <section class="kpis" aria-label="Indicadores">
+    <div class="kpi"><span class="k">Tonelaje SAG ahora</span><span class="v" id="kR">0</span><span class="s" id="kRs"></span></div>
+    <div class="kpi"><span class="k">Promedio del período</span><span class="v" id="kAvg">0</span><span class="s" id="kAvgs"></span></div>
+    <div class="kpi"><span class="k">Toneladas bajo meta</span><span class="v" id="kLost">0</span><span class="s" id="kLosts"></span></div>
+    <div class="kpi bind"><span class="k">Restricción activa</span><span class="v" id="kBind" style="font-size:17px">Meta</span><span class="s" id="kBinds"></span></div>
+    <div class="kpi gx"><span class="k">Equipos en alerta</span><span class="v" id="kGx">0</span><span class="s" id="kGxs"></span></div>
+    <div class="kpi gx"><span class="k">Tiempo para actuar</span><span class="v" id="kLead">0</span><span class="s" id="kLeads"></span></div>
+  </section>
+
+
+  <section class="main">
+    <div class="panel">
+      <h2>Planta completa <b id="fsT"></b></h2>
+      <div class="flowbox" id="flowbox"></div>
+      <div class="legend">
+        <span><i style="background:var(--ore)"></i>Mineral</span>
+        <span><i style="background:var(--conc)"></i>Concentrado</span>
+        <span><i style="background:var(--tail)"></i>Relave</span>
+        <span><i style="background:var(--water)"></i>Agua</span>
+        <span><i style="background:var(--ok)"></i>Salud 85 a 100</span>
+        <span><i style="background:var(--warn)"></i>50 a 85</span>
+        <span><i style="background:var(--hot)"></i>20 a 50</span>
+        <span><i style="background:var(--crit)"></i>Bajo 20</span>
+      </div>
+    </div>
+    <div class="side">
+      <div class="panel">
+        <h2>Capacidad sostenible por etapa</h2>
+        <div class="bars" id="bars"></div>
+        <p class="note" id="buf"></p>
+      </div>
+      <div class="panel">
+        <h2>Tonelaje SAG L1 más L2 y proyección</h2>
+        <div class="chart" id="chart"></div>
+        <div class="legend">
+          <span><i style="background:var(--genix)"></i>Con acción recomendada</span>
+          <span><i style="background:var(--muted)"></i>Sin intervención</span>
+          <span><i style="background:var(--brand)"></i>Meta</span>
+          <span>▲ alerta</span><span style="color:var(--crit)">■ falla si no se interviene</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="gxm">
+    <div class="panel">
+      <div class="adh"><h2>Modelos sobre el activo <b id="adT"></b></h2><span class="sub" id="adS"></span></div>
+      <div class="ad" id="adC"></div>
+      <div class="presc" id="adP"></div>
+    </div>
+    <div class="panel">
+      <h2>Genix Copilot</h2>
+      <div class="qs" id="qs"></div>
+      <div class="ans" id="ans"></div>
+    </div>
+  </section>
+
+  <section class="panel" aria-label="Modelos en ejecución">
+    <div class="adh"><h2>Modelos Genix en ejecución</h2><div class="mcnt" id="mCnt"></div></div>
+    <div class="flt" id="mFlt"></div>
+    <div class="tbl" style="max-height:560px;overflow:auto"><table class="mdl">
+      <thead><tr><th>Modelo</th><th>Tipo</th><th>Activo</th><th>Variables de entrada</th><th>Resultado ahora</th><th>Desempeño</th><th>Frecuencia</th><th>Estado</th></tr></thead>
+      <tbody id="mT"></tbody>
+    </table></div>
+  </section>
+
+  <section class="panel" aria-label="KPI de proceso">
+    <h2>KPI de proceso</h2>
+    <div class="grps" id="met"></div>
+    <div class="row" style="align-items:flex-start;gap:14px">
+      <div class="chart" id="p80c" style="flex:2 1 420px;min-width:0"></div>
+      <div style="flex:1 1 260px;display:flex;flex-wrap:wrap;gap:6px;align-content:flex-start" id="anz"></div>
+    </div>
+  </section>
+
+  <section class="tri">
+    <div class="panel">
+      <h2>Pérdidas de tonelaje por causa <b id="wfMeta" hidden>7000</b></h2>
+      <div class="bars" id="wf"></div>
+      <p class="note" id="wfN"></p>
+    </div>
+    <div class="panel">
+      <h2>Alertas por toneladas en riesgo</h2>
+      <ol class="risk" id="risk"></ol>
+      <p class="note">Producción en riesgo si la alerta no se atiende.</p>
+    </div>
+    <div class="panel">
+      <h2>Optimizador de molienda</h2>
+      <div class="chart" id="opt"></div>
+      <p class="note" id="optN"></p>
+    </div>
+  </section>
+
+  <section class="panel" aria-label="Avisos de mantenimiento">
+    <div class="row" style="justify-content:space-between">
+      <h2>Avisos de mantenimiento enviados al ERP</h2>
+    </div>
+    <div class="tbl"><table class="noti">
+      <thead id="notiH"></thead>
+      <tbody id="notiB"></tbody>
+    </table></div>
+  </section>
+
+  <section class="lower">
+    <div class="panel">
+      <h2>Bitácora y recomendaciones <b id="logMode"></b></h2>
+      <ul class="log" id="log"></ul>
+    </div>
+    <div class="panel">
+      <h2>Estado de equipos críticos</h2>
+      <div class="tbl"><table class="eq">
+        <thead><tr><th>Área</th><th>Equipos</th><th>Salud</th><th>Diagnóstico</th><th>Modelo</th><th>Acción</th></tr></thead>
+        <tbody id="eqT"></tbody>
+      </table></div>
+    </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const fmt=(v,d=0)=>Number(v).toLocaleString('es-CL',{minimumFractionDigits:d,maximumFractionDigits:d});
+
+/* ---------- Parámetros de planta (supuestos) ---------- */
+const K={Smax:40000,S0:18000,Pmax:60000,P0:30000,Pmin:3000,Cmax:3143,C0:786,k:1.7,rr:1.25,pull:0.022,
+  base:{mina:9000,chan:8600,corr:7600,sag1:3650,sag2:3650,bol1:3750,bol2:3750,flot:7700,rel:9000,rec:12000,mws:3300,pipe:181}};
+
+/* ---------- Escenarios ---------- */
+const E=(t,mode,node,kind,model,text,act)=>({t,mode,node,kind,model,text,act});
+const SC=[];
+SC.push({id:'base',name:'Operación continua',H:72,
+ desc:'Operación sin eventos. Holgura por etapa frente a la meta.',
+ mods:[],health:{},events:[E(0,'both','sag1','info','','Planta estable. Coordinador calcula holgura por etapa y nivel de buffers cada 5 min.')]});
+
+SC.push({id:'corr',name:'Atollo de correas por arcilla',H:48,
+ desc:'Atollo del chute de traspaso de 220-CV-002 por finos y arcilla.',
+ mods:[{n:'corr',t0:14,t1:18,f:0.9,m:'sin'},{n:'corr',t0:18,t1:26,f:0,m:'sin'},{n:'corr',t0:13,t1:14.5,f:0,m:'con'},{n:'corr',t0:11,t1:13,f:0.95,m:'con'}],
+ health:{corr:{sin:[[0,93],[6,90],[12,64],[16,32],[18,8],[26,8],[26.2,90],[48,92]],con:[[0,93],[6,90],[11,66],[13,60],[14.5,92],[48,93]]},
+         mina:{both:[[0,90],[6,72],[48,74]]}},
+ events:[E(6,'both','mina','info','','Tronadura del banco con mayor contenido de arcilla, finos bajo 10 mm suben a 34 %.'),
+  E(11,'con','corr','alert','Time series + Rule-based','Corriente del motor 220-CV-002 y nivel del chute de traspaso fuera de referencia. Atollo probable en 6 h.','Programar limpieza de chute en 2 h, con stockpile sobre 60 %. Avisar a mina para mezclar con mineral grueso.'),
+  E(13,'con','corr','action','','Limpieza programada de chute, 1,5 h. El stockpile sostiene ambas líneas SAG sin bajar tonelaje.'),
+  E(18,'sin','corr','fail','','Atollo del chute, detención de 220-CV-002. Limpieza y revisión de correa 8 h.'),
+  E(21.5,'sin','stock','fail','','Stockpile vacío. Las líneas SAG bajan al flujo disponible.')]});
+
+SC.push({id:'inch',name:'Inchancable en chancador',H:48,
+ desc:'Inchancable en el chancador primario 210-CR-001.',
+ mods:[{n:'chan',t0:6,t1:30,f:0,m:'sin'},{n:'chan',t0:6,t1:18,f:0,m:'con'},{n:'meta',t0:6.2,t1:18,f:0.72,m:'con'}],
+ health:{chan:{sin:[[0,92],[6,5],[30,5],[30.2,88],[48,90]],con:[[0,92],[6,5],[18,5],[18.2,88],[48,90]]}},
+ events:[E(6,'both','chan','fail','','Inchancable en la cámara de 210-CR-001. Chancador detenido.'),
+  E(6.1,'con','chan','alert','Rule-based','Patrón de potencia y presión hidráulica de 210-CR-001 compatible con inchancable. Stockpile cubre 3,9 h a la meta actual.','Bajar meta a 5000 t/h para extender el stockpile y activar procedimiento de extracción preparado.'),
+  E(18,'con','chan','action','','Inchancable retirado. Chancador en servicio, recuperación del stockpile.'),
+  E(30,'sin','chan','action','','Inchancable retirado tras 24 h. Partida de planta completa.')]});
+
+SC.push({id:'pps',name:'Bomba bajo molino de bolas',H:72,
+ desc:'Degradación del rodamiento de la bomba de ciclones 310-PP-012.',
+ mods:[{n:'bol1',t0:40,t1:52,f:0.55,m:'sin'},{n:'bol1',t0:30,t1:34,f:0.55,m:'con'}],
+ health:{bol1:{sin:[[0,90],[10,74],[24,52],[34,30],[40,6],[52,6],[52.2,94],[72,94]],con:[[0,90],[10,74],[24,52],[30,40],[34,95],[72,95]]}},
+ events:[E(12,'con','bol1','alert','RUL + EFM','Vibración y temperatura de descanso de 310-PP-012 en tendencia. RUL estimada 28 h, modo de falla rodamiento lado accionamiento.','Programar cambio en 18 h, coordinado con baja de carga en línea 1 y repuesto en terreno.'),
+  E(30,'con','bol1','action','','Cambio planificado de bomba, 4 h con línea 1 al 55 %.'),
+  E(40,'sin','bol1','fail','','Falla de 310-PP-012. Molino 310-ML-004 detenido, línea 1 al 55 % por 12 h.')]});
+
+SC.push({id:'ef1',name:'920-PP-020 a 023 succionan barro',H:72,
+ desc:'Succión de sólidos y pérdida de caudal en bombas de agua fresca 920-PP-020 a 023.',
+ mods:[{n:'mws',t0:4,t1:24,f:[1,0.45],m:'sin'},{n:'mws',t0:24,t1:48,f:0.45,m:'sin'},{n:'mws',t0:48,t1:60,f:[0.45,1],m:'sin'},{n:'mws',t0:4,t1:7,f:[1,0.86],m:'con'},{n:'mws',t0:7,t1:10,f:[0.86,1],m:'con'}],
+ health:{mws:{sin:[[0,92],[4,90],[12,62],[24,30],[48,25],[60,90],[72,92]],con:[[0,92],[4,90],[7,70],[10,92],[72,93]]},pond:{both:[[0,90],[72,90]]}},
+ events:[E(6,'con','mws','alert','EFM desempeño','Caudal de agua fresca 12 % bajo la curva de diseño a igual corriente y presión de succión inestable. Ingreso de sólidos.','Limpiar rejilla y reubicar succión de las bombas antes de perder agua fresca.'),
+  E(8,'con','mws','action','','Succión reubicada, caudal de agua fresca recuperado en 2 h.'),
+  E(30,'sin','pond','fail','','Piscinas de agua de proceso en nivel mínimo. La planta baja tonelaje al agua disponible.'),
+  E(48,'sin','mws','action','','Se detecta la causa en las bombas de agua fresca. Limpieza y recuperación gradual en 12 h.')]});
+
+SC.push({id:'leak',name:'Fuga en concentraducto',H:72,
+ desc:'Fuga en el concentraducto a puerto.',
+ mods:[{n:'pipe',t0:26,t1:56,f:0,m:'sin'},{n:'pipe',t0:20.25,t1:44,f:0,m:'con'}],
+ spill:{sin:240,con:6},
+ health:{conc:{sin:[[0,93],[20,93],[20.1,45],[26,10],[56,10],[56.2,90],[72,92]],con:[[0,93],[20,93],[20.1,30],[44,30],[44.2,90],[72,92]]}},
+ events:[E(20,'both','conc','info','','Rotura en el concentraducto.'),
+  E(20.15,'con','conc','alert','Rule-based + Time series','Diferencia de caudal entrada y salida 18 % y onda de presión entre estaciones. Fuga probable en tramo ubicado.','Detener bombeo, aislar tramo y despachar cuadrilla al punto estimado. Ajustar meta según acopio de concentrado.'),
+  E(20.25,'con','conc','action','','Ducto aislado. Derrame estimado 6 t.'),
+  E(26,'sin','conc','fail','','Fuga detectada por pérdida de presión. Derrame estimado 240 t. Ducto detenido.'),
+  E(35,'con','conc','info','','Acopio de concentrado lleno. Planta detenida hasta reparar el ducto.'),
+  E(41,'sin','conc','info','','Acopio de concentrado lleno. Planta detenida hasta reparar el ducto.')]});
+
+SC.push({id:'ppco',name:'Sobrepresión en recuperación de agua',H:72,
+ desc:'Sobrepresión por restricción en la línea de bombas 920-PP-007 a 010.',
+ mods:[{n:'rec',t0:30,t1:46,f:0.5,m:'sin'},{n:'rec',t0:14,t1:16,f:0.85,m:'con'}],
+ health:{rec:{sin:[[0,90],[10,70],[22,42],[30,8],[46,8],[46.2,92],[72,92]],con:[[0,90],[10,70],[14,62],[16,93],[72,93]]}},
+ events:[E(10,'con','rec','alert','EFM hidráulico','Presión de descarga de 920-PP-008 y 009 18 % sobre referencia a igual caudal. Restricción en impulsión.','Lavado de línea y rebalance de bombas en 4 h, sin afectar agua de proceso.'),
+  E(14,'con','rec','action','','Lavado de línea con 2 bombas en servicio, 2 h.'),
+  E(30,'sin','rec','fail','','Disparo por alta presión de 920-PP-008 y 009. Agua recuperada al 50 % por 16 h.'),
+  E(40,'sin','pond','fail','','Piscinas en nivel mínimo, la planta baja tonelaje por falta de agua.')]});
+
+SC.push({id:'tranque',name:'Cuota de crecimiento del muro',H:1440,
+ desc:'Ultrafinos en arena de ciclones y cota del muro bajo el plan. Horizonte de 60 días.',
+ mods:[{n:'rel',t0:480,t1:1152,f:0,m:'sin'},{n:'meta',t0:72,t1:720,f:0.9,m:'con'}],
+ health:{tranque:{sin:[[0,80],[240,55],[480,15],[1152,15],[1160,85],[1440,86]],con:[[0,80],[48,70],[72,68],[720,88],[1440,90]]},rel:{both:[[0,88],[1440,88]]}},
+ events:[E(48,'con','tranque','alert','Time series + sensor virtual','Ultrafinos en arena de ciclones sobre el límite y drenaje lento. Pronóstico de cota del muro bajo cota de relave en 18 días.','Ajustar ciclones para sacar ultrafinos, llevar el P80 al rango objetivo, ajustar colocación de arena y operar al 90 % de la meta hasta recuperar cuota.'),
+  E(72,'con','tranque','action','','Ciclones y colocación de arena ajustados. Meta al 90 % por 27 días.'),
+  E(480,'sin','tranque','fail','','Margen de muro agotado. Se detiene la depositación y la planta.'),
+  E(1152,'sin','tranque','action','','Cuota recuperada tras 28 días. Partida de planta.')]});
+
+SC.push({id:'mlt',name:'Bomba de molino vertical',H:72,
+ desc:'Falla de bomba de molinos verticales de remolienda.',
+ mods:[{n:'flot',t0:36,t1:50,f:0.8,m:'sin'},{n:'flot',t0:26,t1:29,f:0.85,m:'con'}],
+ health:{flot:{sin:[[0,92],[14,66],[26,40],[36,6],[50,6],[50.2,92],[72,92]],con:[[0,92],[14,66],[26,52],[29,94],[72,94]]}},
+ events:[E(14,'con','flot','alert','EFM','Vibración y temperatura de descanso de bomba 330-PP-074 al molino 330-ML-010 con FPI 62 %. Presión de agua de sello baja.','Cambio de bomba en 12 h en ventana de baja carga, repuesto preparado.'),
+  E(26,'con','flot','action','','Cambio planificado, flotación al 85 % por 3 h.'),
+  E(36,'sin','flot','fail','','Falla de bomba de remolienda. Flotación al 80 % por 14 h.')]});
+
+SC.push({id:'start',name:'Partida de planta',H:36,
+ desc:'Partida de planta tras detención. Permisivos y salud de equipos antes de la rampa.',
+ R0:0,ramp:{sin:650,con:1200},
+ mods:[{n:'meta',t0:0,t1:1,f:0,m:'both'},{n:'sag1',t0:6,t1:8.5,f:0,m:'sin'},{n:'corr',t0:10,t1:11.5,f:0,m:'sin'},{n:'bol2',t0:13,t1:15,f:0.55,m:'sin'}],
+ health:{sag1:{sin:[[0,70],[6,20],[8.5,85],[36,92]],con:[[0,90],[36,92]]},corr:{sin:[[0,80],[10,15],[11.5,88],[36,90]],con:[[0,90],[36,92]]},bol2:{sin:[[0,72],[13,30],[15,88],[36,90]],con:[[0,90],[36,92]]}},
+ events:[E(0.5,'con','sag1','alert','Rule-based permisivos','Chequeo previo a partida. Nivel bajo en cajón 310-SU-011 y sin presión de agua de sello en 310-PP-031.','Corregir nivel y agua de sello antes de dar partida. Rampa de 1200 t/h por hora.'),
+  E(1,'both','sag1','info','','Inicio de partida de planta.'),
+  E(6,'sin','sag1','fail','','Detención de línea 1 por cavitación en bomba de ciclones con cajón bajo, 2,5 h.'),
+  E(10,'sin','corr','fail','','Atollo de chute en correa con carga en frío, 1,5 h.'),
+  E(13,'sin','bol2','fail','','Disparo de 310-PP-013 por falta de agua de sello, 2 h.')]});
+
+/* semana típica: combinación de tres escenarios desplazados */
+function shift(sc,d,filter){
+  return {mods:sc.mods.map(m=>({...m,t0:m.t0+d,t1:m.t1+d})),
+    health:Object.fromEntries(Object.entries(sc.health).filter(([k])=>!filter||filter.includes(k)).map(([k,v])=>[k,Object.fromEntries(Object.entries(v).map(([mm,pts])=>[mm,pts.map(p=>[p[0]+d,p[1]])]))])),
+    events:sc.events.map(e=>({...e,t:e.t+d}))};
+}
+(function(){
+  const a=shift(SC[1],18),b=shift(SC[3],58),c=shift(SC[6],100);
+  const H=168,ext=h=>Object.fromEntries(Object.entries(h).map(([k,v])=>[k,Object.fromEntries(Object.entries(v).map(([m,p])=>[m,[[0,p[0][1]],...p,[H,p[p.length-1][1]]]]))]));
+  SC.unshift({id:'week',name:'Semana típica',H,
+   desc:'Tres eventos en 7 días: correas overland, bomba de ciclones L1 y recuperación de agua.',
+   mods:[...a.mods,...b.mods,...c.mods],health:{...ext(a.health),...ext(b.health),...ext(c.health)},events:[...a.events,...b.events,...c.events,E(140.5,'both','sag1','alert','Rule-based calidad de dato','Analizador de partícula P80 línea 1 entrega el mismo valor hace 30 min. Se reemplaza por sensor virtual de P80 mientras se revisa.','Revisar muestreador y calibración del analizador P80 de línea 1.'),E(152,'both','sag1','action','','Analizador P80 línea 1 en servicio. Sensor virtual vuelve a respaldo.')]});
+})();
+
+/* ---------- Motor ---------- */
+function lerpPts(pts,t){ if(t<=pts[0][0])return pts[0][1]; for(let i=1;i<pts.length;i++){ if(t<=pts[i][0]){const [a,va]=pts[i-1],[b,vb]=pts[i];return b===a?vb:va+(vb-va)*(t-a)/(b-a);} } return pts[pts.length-1][1]; }
+function factor(sc,n,t,mode){ let f=1; for(const m of sc.mods){ if(m.n!==n||(m.m!=='both'&&m.m!==mode))continue; if(t>=m.t0&&t<m.t1){ f*=Array.isArray(m.f)?m.f[0]+(m.f[1]-m.f[0])*(t-m.t0)/(m.t1-m.t0):m.f; } } return f; }
+const NODES=['mina','chan','corr','stock','sag1','sag2','bol1','bol2','flot','mo','conc','puerto','eb','rel','tranque','rec','pond','mws'];
+let P80=180, LIVE=null;
+const P80_LO=175, P80_HI=195, UF_MAX=12;
+const p80At=(t)=>P80+6*Math.sin(t/5.3)+3.5*Math.sin(t/1.7+1);
+function ufAt(t,p){ let off=0; if(cur&&cur.id==='tranque'){ off=mode==='sin'?lerpPts([[0,2],[200,4],[480,5],[1152,5],[1300,1],[1440,1]],t):lerpPts([[0,2],[48,3.5],[72,3.5],[300,0],[1440,0]],t);} return Math.max(4,10+0.09*(185-p)+0.8*Math.sin(t/3.1)+off); }
+const cuFeed=t=>0.60+0.06*Math.sin(t/9)+0.03*Math.sin(t/2.3), moFeed=t=>0.022+0.003*Math.sin(t/7+1);
+function analyzerOk(id,t){ return !(cur&&cur.id==='week'&&id==='p80l1'&&t>=140&&t<152); }
+const gf=p=>Math.pow(p/180,0.4), recF=p=>Math.max(0.5,1-0.0007*(p-180)/0.85), drain=p=>Math.max(0,Math.min(1,(p-140)/100)), DMIN=0.35;
+function health(sc,n,t,mode){ const h=sc.health[n]; if(h){const p=h[mode]||h.both; if(p)return lerpPts(p,t);} if(LIVE&&LIVE.health&&LIVE.health[n]!=null) return +LIVE.health[n]; return 93+2*Math.sin(t/7+n.length); }
+function simulate(sc,mode,meta){
+  const H=sc.H, dt=H<=200?1/12:1, N=Math.round(H/dt), B=K.base;
+  const ramp=(sc.ramp&&sc.ramp[mode])||1500;
+  const L0=LIVE||{}; let S=L0.S??K.S0,P=L0.P??K.P0,C=L0.C??K.C0,R=sc.R0!==undefined?sc.R0:(L0.R??meta); const g=gf(P80);
+  const out=[];
+  for(let i=0;i<=N;i++){
+    const t=i*dt, f=n=>factor(sc,n,t,mode);
+    const nz1=1+0.018*Math.sin(t/4.3)+0.012*Math.sin(t/1.3+2), nz2=1+0.016*Math.sin(t/3.7+1)+0.01*Math.sin(t/1.1);
+    const c={mina:B.mina*f('mina'),chan:B.chan*f('chan'),corr:B.corr*f('corr'),sag1:B.sag1*nz1*g*f('sag1'),sag2:B.sag2*nz2*g*f('sag2'),
+      bol1:B.bol1*g*f('bol1'),bol2:B.bol2*g*f('bol2'),flot:B.flot*f('flot'),rel:B.rel*f('rel'),rec:B.rec*f('rec'),mws:B.mws*f('mws'),pipe:B.pipe*f('pipe')};
+    const F=Math.min(c.mina,c.chan,c.corr);
+    const l1=Math.min(c.sag1,c.bol1), l2=Math.min(c.sag2,c.bol2);
+    const Rw=Math.min(c.mws/(K.k-K.rr),(c.rec+c.mws)/K.k), Rc=c.pipe/K.pull;
+    const target=meta*f('meta');
+    const lim=[['Meta',target],['Molienda SAG y bolas',l1+l2],['Flotación',c.flot],['Relaves y tranque',c.rel]];
+    if(S<=1) lim.push(['Alimentación, stockpile vacío',F]);
+    if(P<=K.Pmin+1) lim.push(['Agua de proceso',Rw]);
+    if(C>=K.Cmax-1) lim.push(['Concentraducto, acopio lleno',Rc]);
+    let bind=lim[0]; for(const x of lim) if(x[1]<bind[1]-0.5) bind=x;
+    const Rl=Math.max(0,bind[1]);
+    let bindName=bind[0];
+    if(R+ramp*dt<Rl-1){ R=R+ramp*dt; bindName='Rampa de subida'; } else R=Rl;
+    const tot=l1+l2, r1=tot>0?R*l1/tot:0, r2=tot>0?R*l2/tot:0;
+    const Fe=S>=K.Smax-1?Math.min(F,R):F;
+    const sNet=Fe-R; S=Math.min(K.Smax,Math.max(0,S+sNet*dt));
+    const rec=Math.min(c.rec,K.rr*R); let fresh=c.mws; const pNet0=rec+fresh-K.k*R;
+    if(P>=K.Pmax-1&&pNet0>0) fresh=Math.max(0,K.k*R-rec);
+    const pNet=rec+fresh-K.k*R; P=Math.min(K.Pmax,Math.max(0,P+pNet*dt));
+    const pipe=C>1?c.pipe:Math.min(c.pipe,K.pull*R); const cNet=K.pull*R-pipe; C=Math.min(K.Cmax,Math.max(0,C+cNet*dt));
+    const caps=[['Chancado',Math.min(c.mina,c.chan)],['Correas overland',c.corr],['Molienda SAG',c.sag1+c.sag2],['Bolas y ciclones',c.bol1+c.bol2],['Flotación',c.flot],['Agua de proceso',Rw],['Concentraducto',Rc],['Relaves y tranque',c.rel]];
+    const tte=[];
+    if(sNet<-1) tte.push(['Stockpile se vacía',S/-sNet]);
+    if(pNet<-1) tte.push(['Piscinas de agua llegan al mínimo',Math.max(0,P-K.Pmin)/-pNet]);
+    if(cNet>0.5) tte.push(['Acopio de concentrado se llena',(K.Cmax-C)/cNet]);
+    const hl={}; for(const n of NODES) hl[n]=health(sc,n,t,mode);
+    let cause=null; if(R<meta-1){ cause=bindName; if(cause==='Meta') cause='Meta reducida por coordinación'; if(cause==='Molienda SAG y bolas') cause=(c.sag1+c.sag2<=c.bol1+c.bol2)?'Molienda SAG':'Bolas y ciclones'; }
+    const raw={sag:(c.sag1+c.sag2)/g,bol:(c.bol1+c.bol2)/g,flot:c.flot,Rw,Rc,rel:c.rel,F};
+    out.push({t,R,r1,r2,F:Fe,S,P,C,rec,fresh,pipe,caps,bind:bindName,tte,hl,cause,raw});
+  }
+  return {dt,N,out};
+}
+
+/* ---------- Flowsheet ---------- */
+const W=128,Hn=86;
+const ND={
+ mina:{x:10,y:40,t:'Mina y tronadura',g:'Fragmentación y finos'},
+ chan:{x:160,y:40,t:'Chancado primario',g:'210-CR-001'},
+ corr:{x:310,y:40,t:'Correas overland',g:'220-CV-001 y 002'},
+ stock:{x:460,y:40,t:'Stockpile',g:'240-FE-001 a 006'},
+ sag1:{x:610,y:0,t:'SAG línea 1',g:'310-ML-001'},
+ sag2:{x:610,y:115,t:'SAG línea 2',g:'310-ML-002'},
+ bol1:{x:760,y:0,t:'Bolas y ciclones L1',g:'ML-003/004 PP-011/012'},
+ bol2:{x:760,y:115,t:'Bolas y ciclones L2',g:'ML-005/006 PP-013/014'},
+ flot:{x:910,y:57,t:'Flotación',g:'celdas y remolienda 330-ML'},
+ mo:{x:910,y:250,t:'Planta de molibdeno',g:'340-TK-001 colectivo'},
+ conc:{x:1060,y:250,t:'Concentraducto',g:'340-TK-002 Cu y bombeo'},
+ puerto:{x:1060,y:420,t:'Filtrado y embarque',g:'Filtros y desaladora'},
+ eb:{x:760,y:420,t:'Estaciones de bombeo',g:'920-PS-001 a 005'},
+ rel:{x:760,y:250,t:'Espesadores relaves',g:'410-TK-001 y 002'},
+ tranque:{x:610,y:250,t:'Tranque y muro',g:'410-PP-041 a 046'},
+ rec:{x:460,y:250,t:'Recuperación agua',g:'920-PP-007 a 010'},
+ pond:{x:310,y:250,t:'Piscinas agua proceso',g:'920-PN-001 a 003'},
+ mws:{x:310,y:420,t:'Agua de reposición',g:'920-PP-020 a 023'}
+};
+const LINES=[
+ {k:'ore',p:[[138,83],[160,83]],v:d=>d.F},{k:'ore',p:[[288,83],[310,83]],v:d=>d.F},{k:'ore',p:[[438,83],[460,83]],v:d=>d.F},
+ {k:'ore',p:[[588,83],[598,83],[598,43],[610,43]],v:d=>d.r1},{k:'ore',p:[[598,83],[598,158],[610,158]],v:d=>d.r2},
+ {k:'ore',p:[[738,43],[760,43]],v:d=>d.r1},{k:'ore',p:[[738,158],[760,158]],v:d=>d.r2},
+ {k:'ore',p:[[888,43],[898,43],[898,100],[910,100]],v:d=>d.r1},{k:'ore',p:[[888,158],[898,158],[898,100]],v:d=>d.r2},
+ {k:'conc',p:[[984,143],[984,250]],v:d=>d.R*K.pull*30},{k:'conc',p:[[1038,293],[1060,293]],v:d=>d.R*K.pull*30},{k:'conc',p:[[1124,336],[1124,420]],v:d=>d.pipe*30},{k:'conc',p:[[974,336],[974,392]],v:d=>d.R*K.pull*6},
+ {k:'tail',p:[[940,143],[940,212],[824,212],[824,250]],v:d=>d.R},
+ {k:'tail',p:[[760,293],[738,293]],v:d=>d.R},
+ {k:'water',p:[[610,293],[588,293]],v:d=>d.rec*0.6},{k:'water',p:[[460,293],[438,293]],v:d=>d.rec*0.6},
+ {k:'water',p:[[374,250],[374,226],[674,226],[674,201]],v:d=>(d.rec+d.fresh)*0.6},
+ {k:'water',p:[[374,420],[374,336]],v:d=>d.fresh*1.4},
+ {k:'water',p:[[1060,463],[888,463]],v:d=>d.fresh*1.4},{k:'water',p:[[760,463],[438,463]],v:d=>d.fresh*1.4}
+];
+const COL={ore:'var(--ore)',conc:'var(--conc)',tail:'var(--tail)',water:'var(--water)'};
+const NS='http://www.w3.org/2000/svg';
+function el(tag,attrs,parent,text){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(text!==undefined)e.textContent=text;if(parent)parent.appendChild(e);return e;}
+const band=h=>h>=85?'var(--ok)':h>=50?'var(--warn)':h>=20?'var(--hot)':'var(--crit)';
+const svg=el('svg',{viewBox:'0 -14 1200 534',role:'img','aria-label':'Flowsheet de la planta completa'});
+$('flowbox').appendChild(svg);
+el('text',{x:374,y:220,fill:'var(--muted)','font-size':10},svg,'Agua de proceso a molienda');
+el('text',{x:450,y:478,fill:'var(--muted)','font-size':10},svg,'Acueducto de agua de reposición');
+el('text',{x:982,y:404,fill:'var(--muted)','font-size':10},svg,'Concentrado Mo');
+const defs=el('defs',{},svg);
+for(const k in COL){ const m=el('marker',{id:'ar-'+k,viewBox:'0 0 10 10',refX:9,refY:5,markerWidth:11,markerHeight:11,markerUnits:'userSpaceOnUse',orient:'auto'},defs); el('path',{d:'M0,0 L10,5 L0,10 Z',fill:COL[k]},m); }
+const lineEls=LINES.map(L=>el('polyline',{points:L.p.map(q=>q.join(',')).join(' '),class:'fl',stroke:COL[L.k],'stroke-width':3,'marker-end':'url(#ar-'+L.k+')'},svg));
+const NE={};
+for(const n of NODES){
+  const d=ND[n], g=el('g',{transform:`translate(${d.x},${d.y})`},svg);
+  const r=el('rect',{x:0,y:0,width:W,height:Hn,rx:4,fill:'var(--panel2)',stroke:'var(--line)','stroke-width':1.5},g);
+  const lv=el('rect',{x:1,y:Hn-1,width:W-2,height:0,fill:n==='pond'?'var(--water)':n==='conc'?'var(--conc)':'var(--ore)',opacity:.18},g);
+  el('text',{x:8,y:15,fill:'var(--fg)','font-size':11.5,'font-weight':600},g,d.t);
+  el('text',{x:8,y:28,fill:'var(--muted)','font-size':9.5},g,d.g);
+  const v=el('text',{x:8,y:52,fill:'var(--fg)','font-size':16,class:'dv'},g,'');
+  const s=el('text',{x:8,y:66,fill:'var(--muted)','font-size':8.5},g,'');
+  el('rect',{x:8,y:73,width:W-44,height:5,rx:1,fill:'var(--line)'},g);
+  const hb=el('rect',{x:8,y:73,width:0,height:5,rx:1,fill:'var(--ok)'},g);
+  const hn=el('text',{x:W-8,y:79,fill:'var(--muted)','font-size':9.5,'text-anchor':'end',class:'dv'},g,'');
+  const bd=el('g',{opacity:0},g);
+  el('rect',{x:W-58,y:-11,width:58,height:15,rx:2,fill:'var(--crit)'},bd);
+  el('text',{x:W-29,y:0,fill:'#fff','font-size':8.5,'font-weight':600,'text-anchor':'middle'},bd,'RESTRICCIÓN');
+  const al=el('g',{opacity:0},g);
+  el('rect',{x:0,y:-11,width:70,height:15,rx:2,fill:'var(--genix)'},al);
+  const alt=el('text',{x:35,y:0,fill:'#fff','font-size':8.5,'font-weight':600,'text-anchor':'middle'},al,'ALERTA');
+  const mb=el('g',{opacity:0},g); el('rect',{x:W-58,y:Hn-1,width:58,height:13,rx:2,fill:'#EEF2FF',stroke:'var(--genix)','stroke-width':1},mb);
+  const mbt=el('text',{x:W-29,y:Hn+9,fill:'var(--genix)','font-size':8.5,'text-anchor':'middle'},mb,'');
+  g.style.cursor='pointer'; g.addEventListener('click',()=>{SEL=SEL===n?null:n;render();});
+  NE[n]={r,lv,v,s,hb,hn,bd,al,alt,mb,mbt};
+}
+
+/* ---------- Estado ---------- */
+let cur=SC[0], mode='con', meta=7000, sims={}, idx=0, playing=false, speed=1, last=0;
+function run(){ sims={con:simulate(cur,'con',meta),sin:simulate(cur,'sin',meta)}; }
+const tf=t=>cur.H<=200?`${fmt(t,1)} h`:`día ${fmt(t/24,1)}`;
+const unitH=()=>cur.H<=200?'h':'días';
+
+function buildChips(){
+  const box=$('scSel'); if(!box.options.length){ SC.forEach(sc=>{const o=document.createElement('option');o.value=sc.id;o.textContent=sc.name;box.appendChild(o);}); box.onchange=()=>select(SC.find(x=>x.id===box.value)); }
+  box.value=cur.id;
+}
+function select(sc){
+  cur=sc; buildChips(); $('desc').textContent=sc.desc; run();
+  const firstAlert=sc.events.find(e=>e.kind==='alert'&&e.mode==='con');
+  const t0=firstAlert?firstAlert.t+ (sc.H>200?24:1):sc.H*0.3;
+  idx=Math.min(sims.con.N,Math.round(t0/sims.con.dt));
+  $('scrub').max=sims.con.N; drawChart(); render();
+}
+
+/* ---------- Gráfico ---------- */
+const CW=600,CH=220,PL=44,PR=8,PT=18,PB=24,YM=8000;
+function xs(t){return PL+(CW-PL-PR)*t/cur.H} function ys(v){return PT+(CH-PT-PB)*(1-v/YM)}
+let chartSvg,ph;
+function drawChart(){
+  const box=$('chart'); box.innerHTML='';
+  chartSvg=el('svg',{viewBox:`0 0 ${CW} ${CH}`,role:'img','aria-label':'Tendencia de tonelaje con y sin intervención'});
+  box.appendChild(chartSvg);
+  for(let v=0;v<=YM;v+=2000){el('line',{x1:PL,x2:CW-PR,y1:ys(v),y2:ys(v),stroke:'var(--line)','stroke-width':1},chartSvg);el('text',{x:PL-6,y:ys(v)+3,fill:'var(--muted)','font-size':10,'text-anchor':'end',class:'dv'},chartSvg,fmt(v));}
+  const nT=6; for(let i=0;i<=nT;i++){const t=cur.H*i/nT;el('text',{x:xs(t),y:CH-6,fill:'var(--muted)','font-size':10,'text-anchor':'middle',class:'dv'},chartSvg,cur.H<=200?fmt(t,0)+' h':'día '+fmt(t/24,0));}
+  const path=(sim)=>{const st=Math.max(1,Math.floor(sim.out.length/600));let d='';for(let i=0;i<sim.out.length;i+=st){const o=sim.out[i];d+=(d?'L':'M')+xs(o.t).toFixed(1)+','+ys(o.R).toFixed(1);}const o=sim.out[sim.out.length-1];return d+'L'+xs(o.t).toFixed(1)+','+ys(o.R).toFixed(1);};
+  const pc=path(sims.con);
+  el('path',{d:pc+`L${xs(cur.H)},${ys(0)}L${xs(0)},${ys(0)}Z`,fill:'var(--genix)',opacity:.08},chartSvg);
+  el('path',{d:path(sims.sin),fill:'none',stroke:'var(--muted)','stroke-width':1.5,opacity:.9},chartSvg);
+  el('path',{d:pc,fill:'none',stroke:'var(--genix)','stroke-width':2},chartSvg);
+  el('line',{x1:PL,x2:CW-PR,y1:ys(meta),y2:ys(meta),stroke:'var(--brand)','stroke-width':1.2,'stroke-dasharray':'5 4'},chartSvg);
+  for(const e of cur.events){
+    if(e.kind==='alert'&&e.mode==='con'){const g=el('path',{d:`M${xs(e.t)},${PT-2}l5,-9h-10z`,fill:'var(--genix)'},chartSvg);el('title',{},g,`${tf(e.t)} alerta Genix`);}
+    if(e.kind==='fail'&&e.mode==='sin'){const g=el('rect',{x:xs(e.t)-4,y:PT-11,width:8,height:8,fill:'var(--crit)'},chartSvg);el('title',{},g,`${tf(e.t)} falla sin aviso`);}
+  }
+  ph=el('line',{x1:0,x2:0,y1:PT,y2:CH-PB,stroke:'var(--fg)','stroke-width':1,opacity:.7},chartSvg);
+  chartSvg.addEventListener('click',ev=>{const r=chartSvg.getBoundingClientRect();const x=(ev.clientX-r.left)*CW/r.width;const t=Math.max(0,Math.min(cur.H,(x-PL)/(CW-PL-PR)*cur.H));idx=Math.round(t/sims.con.dt);render();});
+}
+
+/* ---------- Render ---------- */
+function stats(sim,upto){ let sum=0,lost=0; const dt=sim.dt; for(let i=1;i<=upto;i++){const R=sim.out[i].R; sum+=R*dt; lost+=Math.max(0,meta-R)*dt;} return {tons:sum,avg:upto>0?sum/(upto*dt):sim.out[0].R,lost}; }
+function activeAlert(n,t){ if(mode!=='con')return null; let a=null; for(const e of cur.events){ if(e.node===n&&e.mode==='con'&&e.kind==='alert'&&e.t<=t){ const fix=cur.events.find(x=>x.node===n&&x.mode==='con'&&x.kind==='action'&&x.t>e.t); if(!fix||fix.t>t) a=e; } } return a; }
+function render(){
+  const sim=sims[mode], o=sim.out[Math.min(idx,sim.N)], t=o.t;
+  $('scrub').value=idx; $('clock').textContent=tf(t);
+  MET=metal(o,t);
+  document.querySelector('.wrap').classList.toggle('paused',!playing);
+  // nodos
+  const vals={
+    mina:[fmt(Math.min(K.base.mina*factor(cur,'mina',t,mode)))+' t/h','ley en pala '+fmt(cuFeed(t+o.S/Math.max(1,o.R)),2)+' % Cu'],
+    chan:[fmt(o.F)+' t/h','alimentación a correas'],
+    corr:[fmt(o.F)+' t/h','hacia stockpile'],
+    stock:[fmt(o.S/K.Smax*100,0)+' %',fmt(o.S/1000,1)+' kt, '+fmt(o.R>0?o.S/o.R:0,1)+' h de autonomía'],
+    sag1:[fmt(o.r1)+' t/h','alimentación línea 1'],sag2:[fmt(o.r2)+' t/h','alimentación línea 2'],
+    bol1:[fmt(o.r1)+' t/h','circuito inverso L1'],bol2:[fmt(o.r2)+' t/h','circuito inverso L2'],
+    flot:[fmt(o.R*K.pull,0)+' t/h','recuperación Cu '+fmt(MET.recCu*100,1)+' %'],
+    conc:[fmt(o.pipe,0)+' t/h',fmt(MET.cCu,1)+' % Cu, acopio '+fmt(o.C/K.Cmax*100,0)+' %'],
+    puerto:[fmt(o.pipe,0)+' t/h','humedad '+fmt(MET.hum,1)+' %'],
+    mo:[fmt(MET.moOut*1000,0)+' kg/h Mo','recuperación Mo '+fmt(MET.recMo*100,1)+' %'],
+    eb:[fmt(o.fresh)+' m³/h','≈ '+fmt(o.fresh*16*24/1000,0)+' MWh/d de bombeo'],
+    rel:[fmt(o.R*(1-K.pull))+' t/h','relave espesado'],
+    tranque:[fmt(o.R*(1-K.pull))+' t/h','relave '+fmt(MET.tCu,3)+' % Cu'],
+    rec:[fmt(o.rec)+' m³/h','agua recuperada'],
+    pond:[fmt(o.P/K.Pmax*100,0)+' %',fmt((o.P)/1000,1)+' mil m³'],
+    mws:[fmt(o.fresh)+' m³/h','make up '+fmt(MET.wMk||0,2)+' m³/t']
+  };
+  const bindNode={'Alimentación, stockpile vacío':'stock','Agua de proceso':'pond','Concentraducto, acopio lleno':'conc','Relaves y tranque':'tranque','Flotación':'flot'}[o.bind];
+  let bindMill=null; if(o.bind==='Molienda SAG y bolas'){ const c=o.caps; bindMill=(c[2][1]<=c[3][1])?['sag1','sag2']:['bol1','bol2']; }
+  for(const n of NODES){
+    const e=NE[n], h=o.hl[n];
+    e.v.textContent=vals[n][0]; e.s.textContent=vals[n][1];
+    e.hb.setAttribute('width',Math.max(0,(W-44)*h/100)); e.hb.setAttribute('fill',band(h)); e.hn.textContent='HI '+fmt(h,0);
+    const isB=bindNode===n||(bindMill&&bindMill.includes(n));
+    e.r.setAttribute('stroke',isB?'var(--crit)':band(h)); e.r.setAttribute('stroke-width',isB?3:1.5);
+    e.r.setAttribute('stroke-dasharray',isB?'6 3':'none');
+    e.bd.setAttribute('opacity',isB?1:0);
+    const a=activeAlert(n,t); e.al.setAttribute('opacity',a?1:0); if(a) e.alt.textContent='ALERTA';
+    const lvl=n==='stock'?o.S/K.Smax:n==='pond'?o.P/K.Pmax:n==='conc'?o.C/K.Cmax:0;
+    e.lv.setAttribute('y',Hn-1-(Hn-2)*lvl); e.lv.setAttribute('height',(Hn-2)*lvl);
+  }
+  LINES.forEach((L,i)=>{const v=L.v(o);const w=Math.max(1,Math.min(9,v/700));lineEls[i].setAttribute('stroke-width',w.toFixed(1));lineEls[i].classList.toggle('off',v<20);});
+  $('fsT').textContent='| '+tf(t);
+  // barras
+  const bx=$('bars'); bx.innerHTML=''; const mn=Math.min(...o.caps.map(c=>c[1]));
+  for(const [lab,v] of o.caps){
+    const d=document.createElement('div'); d.className='bar'+(v<=mn+1&&v<meta?' isbind':'');
+    d.innerHTML=`<span class="lab" title="${lab}">${lab}</span><span class="track"><span class="fill" style="width:${Math.min(100,v/9500*100)}%"></span><span class="mk" style="left:${meta/9500*100}%"></span></span><span class="val">${fmt(v)}</span>`;
+    bx.appendChild(d);
+  }
+  const tt=o.tte.slice().sort((a,b)=>a[1]-b[1])[0];
+  $('buf').textContent=(tt?`${tt[0]} en ${fmt(tt[1],1)} h a la tasa actual. `:'Buffers estables. ')+'Marca vertical: meta. Rojo: restricción bajo la meta.';
+  // gráfico
+  if(ph){ph.setAttribute('x1',xs(t));ph.setAttribute('x2',xs(t));}
+  // KPI
+  const st=stats(sim,idx), full={con:stats(sims.con,sims.con.N),sin:stats(sims.sin,sims.sin.N)};
+  $('kR').textContent=fmt(o.R)+' t/h'; $('kRs').textContent=`L1 ${fmt(o.r1)} | L2 ${fmt(o.r2)} | meta ${fmt(meta)}`;
+  $('kAvg').textContent=fmt(st.avg)+' t/h'; $('kAvgs').textContent=fmt(st.avg/meta*100,1)+' % de la meta hasta '+tf(t);
+  $('kLost').textContent=fmt(st.lost/1000,1)+' kt'; $('kLosts').textContent='mineral no procesado hasta '+tf(t);
+  $('kBind').textContent=o.bind; $('kBinds').textContent=tt?`${tt[0]} en ${fmt(tt[1],1)} h`:'sin buffer en descenso';
+  const act=NODES.filter(n=>activeAlert(n,t)); const worst=NODES.reduce((a,n)=>o.hl[n]<o.hl[a]?n:a,NODES[0]);
+  $('kGx').textContent=mode==='con'?String(act.length):'-'; $('kGxs').textContent='menor salud '+ND[worst].t+' HI '+fmt(o.hl[worst],0);
+  let lead=null; for(const n of act){ const fe=cur.events.find(e=>e.node===n&&e.mode==='sin'&&e.kind==='fail'&&e.t>t); if(fe&&(!lead||fe.t-t<lead[0])) lead=[fe.t-t,n]; }
+  if(lead){$('kLead').textContent=cur.H<=200?fmt(lead[0],1)+' h':fmt(lead[0]/24,0)+' días';$('kLeads').textContent='antes de falla en '+ND[lead[1]].t;}
+  else {$('kLead').textContent='-';$('kLeads').textContent=act.length?'acción en curso':'sin alertas abiertas';}
+  renderWF(sim); renderRisk(t); renderOpt(o); renderMet(sim,t); renderGx(o,t);
+  // bitácora
+  $('logMode').textContent='| '+(mode==='con'?'con acción recomendada':'sin intervención'); renderEq(o,t); renderNoti(t);
+  const ul=$('log'); ul.innerHTML='';
+  const evs=cur.events.filter(e=>(e.mode==='both'||e.mode===mode)&&e.t<=t).sort((a,b)=>b.t-a.t);
+  if(!evs.length){const li=document.createElement('li');li.className='empty';li.innerHTML='<span class="t">'+tf(t)+'</span><span>Sin eventos hasta este momento. Avanza la barra de tiempo o presiona Reproducir.</span>';ul.appendChild(li);}
+  for(const e of evs){
+    const li=document.createElement('li'); li.className=e.kind;
+    li.innerHTML=`<span class="t">${tf(e.t)}</span><span>${e.model?`<span class="m">${e.model}</span>`:''}${e.text}${e.act?`<br><span class="a">Recomendación. ${e.act}</span>`:''}</span>`;
+    ul.appendChild(li);
+  }
+}
+
+
+
+/* ---------- Metalurgia y granulometría ---------- */
+let MET={};
+function metal(o,t){
+  const p=p80At(t), lag=o.S/Math.max(1,o.R), f=cuFeed(t-lag), fm=moFeed(t-lag);
+  const flotPen=(o.caps.find(c=>c[0]==='Flotación')[1]<7600)?0.03:0;
+  const rc=Math.max(0.5,0.86*recF(p)-flotPen), rm=Math.max(0.4,0.68*recF(p)-flotPen);
+  const cCu=f*rc/K.pull, cMo=fm*rm/K.pull, tCu=f*(1-rc)/(1-K.pull), tMo=fm*(1-rm)/(1-K.pull);
+  const rc3=cCu*(f-tCu)/(f*(cCu-tCu));
+  const sp=Math.pow(180/p,0.3), bp=Math.pow(180/p,0.5);
+  const pSag=20*(o.r1/3500)*sp+20*(o.r2/3500)*sp, pBol=26*(o.r1/3500)*bp+26*(o.r2/3500)*bp;
+  const cee=o.R>50?(pSag+pBol)*1000/o.R:null;
+  const hum=8.7+0.25*Math.sin(t/6.3)+0.15*Math.sin(t/1.9);
+  return {pSag,pBol,cee,wTot:o.R>50?(o.rec+o.fresh)/o.R:null,wMk:o.R>50?o.fresh/o.R:null,cuMina:cuFeed(t),Fcr:o.F,R:o.R,hum,
+    p,uf:ufAt(t,p),lag,f,fm,recCu:rc3,recMo:rm,cCu,cMo,tCu,tMo,cuIn:o.R*f/100,cuOut:o.R*f/100*rc3,cuLost:o.R*f/100*(1-rc3),moOut:o.R*fm/100*rm,
+    an:{p80l1:analyzerOk('p80l1',t),p80l2:true,osa:true,pala:true}};
+}
+function renderMet(sim,t){
+  const m=MET, inB=m.p>=P80_LO&&m.p<=P80_HI;
+  let n=0,inn=0; const up=Math.min(idx,sim.N); for(let i=0;i<=up;i+=Math.max(1,Math.floor(up/400))){ n++; const pp=p80At(sim.out[i].t); if(pp>=P80_LO&&pp<=P80_HI) inn++; }
+  const G=[
+   ['Producción',[
+    ['Descarga chancado primario',fmt(m.Fcr)+' t/h','210-CR-001','var(--fg)'],
+    ['Alimentación SAG',fmt(m.R)+' t/h',`meta ${fmt(meta)} t/h`,m.R>=meta-50?'var(--ok)':'var(--warn)'],
+    ['Cobre fino',fmt(m.cuOut,1)+' t/h',`${fmt(m.cuLost,1)} t/h al relave, Mo ${fmt(m.moOut*1000,0)} kg/h`,'var(--fg)']]],
+   ['Energía y agua',[
+    ['CEE en línea',m.cee!=null?fmt(m.cee,1)+' kWh/t':'-',`SAG ${fmt(m.pSag,1)} MW, bolas ${fmt(m.pBol,1)} MW`,m.cee!=null&&m.cee<=13.5?'var(--ok)':'var(--warn)'],
+    ['Consumo específico agua',m.wTot!=null?fmt(m.wTot,2)+' m³/t':'-','agua total a proceso','var(--fg)'],
+    ['Make up',m.wMk!=null?fmt(m.wMk,2)+' m³/t':'-',`${fmt(m.wMk!=null?m.wMk*m.R:0)} m³/h de agua fresca`,m.wMk!=null&&m.wMk<=0.5?'var(--ok)':'var(--warn)']]],
+   ['Leyes y calidad',[
+    ['Ley Cu mina',fmt(m.cuMina,2)+' % Cu','medida en pala ahora','var(--fg)'],
+    ['Ley alimentación',fmt(m.f,2)+' % Cu',`${fmt(m.fm,3)} % Mo, en pala hace ${fmt(m.lag,1)} h`,'var(--fg)'],
+    ['Cu concentrado',fmt(m.cCu,1)+' % Cu',`${fmt(m.cMo,2)} % Mo`,'var(--fg)'],
+    ['Cu en colas',fmt(m.tCu,3)+' % Cu',`${fmt(m.tMo,4)} % Mo`,m.tCu<=0.09?'var(--ok)':'var(--warn)'],
+    ['Humedad embarcable',fmt(m.hum,1)+' %','límite de embarque 9,5 %, sensor virtual de filtro',m.hum<=9.5?'var(--ok)':'var(--crit)'],
+    ['Recuperación Cu',fmt(m.recCu*100,1)+' %',`Mo ${fmt(m.recMo*100,1)} %, balance de 3 productos`,'var(--fg)']]],
+   ['Molienda',[
+    ['P80 molienda',fmt(m.p,0)+' µm',`objetivo ${P80_LO} a ${P80_HI} µm`,inB?'var(--ok)':'var(--warn)'],
+    ['Tiempo en rango P80',fmt(n?inn/n*100:0,0)+' %','KPI de granulometría',(n&&inn/n>=0.85)?'var(--ok)':'var(--warn)'],
+    ['Ultrafinos en arena',fmt(m.uf,1)+' %',`bajo ${UF_MAX} % para drenaje del muro`,m.uf<=UF_MAX?'var(--ok)':'var(--crit)']]]
+  ];
+  $('met').innerHTML=G.map(g=>`<div class="grp"><span class="gh">${g[0]}</span><div class="mets">${g[1].map(x=>`<div class="mt"><span class="k">${x[0]}</span><span class="v" style="color:${x[3]}">${x[1]}</span><span class="s">${x[2]}</span></div>`).join('')}</div></div>`).join('');
+  const an=[['Analizador P80 línea 1',m.an.p80l1],['Analizador P80 línea 2',m.an.p80l2],['Analizador de leyes flotación',m.an.osa],['Ley en pala',m.an.pala]];
+  $('anz').innerHTML=an.map(a=>`<span class="st2" style="color:${a[1]?'var(--ok)':'var(--warn)'};border-color:${a[1]?'var(--ok)':'var(--warn)'}">${a[0]} ${a[1]?'en servicio':'sin dato, usando sensor virtual'}</span>`).join(' ');
+  // tendencia P80 con banda objetivo
+  const W_=760,H_=120,pl=40,pr_=8,pt=8,pb=20,lo=140,hi=240, X=tt=>pl+(W_-pl-pr_)*tt/cur.H, Y=v=>pt+(H_-pt-pb)*(1-(v-lo)/(hi-lo));
+  const box=$('p80c'); box.innerHTML=''; const sv=el('svg',{viewBox:`0 0 ${W_} ${H_}`,role:'img','aria-label':'Tendencia de P80'}); box.appendChild(sv);
+  el('rect',{x:pl,y:Y(P80_HI),width:W_-pl-pr_,height:Y(P80_LO)-Y(P80_HI),fill:'var(--ok)',opacity:.12},sv);
+  [150,175,195,220].forEach(v=>el('text',{x:pl-5,y:Y(v)+3,fill:'var(--muted)','font-size':9,'text-anchor':'end'},sv,v));
+  let d=''; const N=300; for(let i=0;i<=N;i++){const tt=cur.H*i/N; d+=(i?'L':'M')+X(tt).toFixed(1)+','+Y(p80At(tt)).toFixed(1);}
+  el('path',{d,fill:'none',stroke:'var(--genix)','stroke-width':1.5},sv);
+  el('line',{x1:X(t),x2:X(t),y1:pt,y2:H_-pb,stroke:'var(--fg)',opacity:.7},sv);
+  el('text',{x:pl,y:H_-5,fill:'var(--muted)','font-size':9},sv,'Banda verde es el rango objetivo de P80');
+}
+
+/* ---------- Cascada de pérdidas ---------- */
+function renderWF(sim){
+  const acc={}; let tot=0; const up=Math.min(idx,sim.N);
+  for(let i=1;i<=up;i++){const o=sim.out[i]; if(!o.cause)continue; const l=(meta-o.R)*sim.dt; acc[o.cause]=(acc[o.cause]||0)+l; tot+=l;}
+  const rows=Object.entries(acc).sort((a,b)=>b[1]-a[1]); const box=$('wf'); box.innerHTML='';
+  if(!rows.length){ box.innerHTML='<p class="empty">Sin toneladas bajo la meta hasta '+tf(sim.out[up].t)+'.</p>'; $('wfN').textContent=''; return; }
+  const mx=rows[0][1];
+  for(const [k,v] of rows){ const d=document.createElement('div'); d.className='bar wfb';
+    d.innerHTML=`<span class="lab" title="${k}">${k}</span><span class="track"><span class="fill" style="width:${v/mx*100}%"></span></span><span class="val">${fmt(v/1000,1)} kt</span>`; box.appendChild(d); }
+  const ley=0.50, rc=85*recF(P80);
+  $('wfN').textContent=`Total ${fmt(tot/1000,1)} kt hasta ${tf(sim.out[up].t)}, ${fmt(tot*ley/100*rc/100,0)} t de Cu fino.`;
+}
+/* ---------- Toneladas en riesgo ---------- */
+function riskList(){
+  const al=cur.events.filter(e=>e.kind==='alert'&&e.mode==='con').sort((a,b)=>a.t-b.t);
+  const W=cur.H<=200?48:720, a=sims.con, b=sims.sin;
+  return al.map((e,i)=>{ const end=Math.min(cur.H,e.t+W,i+1<al.length?al[i+1].t:Infinity); let v=0;
+    for(let k=0;k<=a.N;k++){const t=a.out[k].t; if(t>=e.t&&t<end) v+=(a.out[k].R-b.out[k].R)*a.dt;} return {e,v:Math.max(0,v),end}; }).sort((x,y)=>y.v-x.v);
+}
+function renderRisk(t){
+  const box=$('risk'); box.innerHTML=''; const L=mode==='con'?riskList().filter(x=>x.e.t<=t):[];
+  const ley=0.50, rc=85*recF(P80), pr=4.3;
+  if(!L.length){ box.innerHTML='<li><span></span><span class="empty">Sin alertas abiertas.</span><span></span></li>'; return; }
+  L.forEach((x,i)=>{ const li=document.createElement('li'); if(x.e.t<=t&&t<x.end&&mode==='con') li.className='on';
+    const cu=x.v*ley/100*rc/100;
+    li.innerHTML=`<span class="rk">${i+1}</span><span><b>${ND[x.e.node].t}</b> <span class="mono" style="color:var(--genix);font-size:11px">${x.e.model}</span><br><span style="color:var(--muted)">${tf(x.e.t)}. ${x.e.act||x.e.text}</span></span><span class="tn">${fmt(x.v/1000,1)} kt<small>${fmt(cu,0)} t Cu</small></span>`;
+    box.appendChild(li); });
+}
+/* ---------- Optimizador P80 ---------- */
+function renderOpt(o){
+  const W_=360,H_=200,pl=40,pr_=10,pt=14,pb=26, ley=0.50, rc=85/100;
+  const T=p=>Math.min(o.raw.sag*gf(p),o.raw.bol*gf(p),o.raw.flot,o.raw.Rw,o.raw.Rc,o.raw.rel);
+  const cu=p=>T(p)*ley/100*rc*recF(p);
+  const ps=[]; for(let p=140;p<=260;p+=2) ps.push(p);
+  const vals=ps.map(cu); const mx=Math.max(...vals)*1.05, mn=Math.min(...vals)*0.95;
+  let best=null; ps.forEach((p,i)=>{ if(drain(p)>=DMIN&&(!best||vals[i]>best[1])) best=[p,vals[i]]; }); OPTBEST=best?[best[0],best[1],T(best[0])]:null;
+  const X=p=>pl+(W_-pl-pr_)*(p-140)/120, Y=v=>pt+(H_-pt-pb)*(1-(v-mn)/(mx-mn));
+  const box=$('opt'); box.innerHTML='';
+  const sv=el('svg',{viewBox:`0 0 ${W_} ${H_}`,role:'img','aria-label':'Cobre fino según P80'}); box.appendChild(sv);
+  const pMin=140+DMIN*100;
+  el('rect',{x:X(140),y:pt,width:X(pMin)-X(140),height:H_-pt-pb,fill:'var(--crit)',opacity:.1},sv);
+  el('text',{x:X(140)+4,y:pt+12,fill:'var(--crit)','font-size':9.5},sv,'arena no drena');
+  el('rect',{x:X(P80_LO),y:pt,width:X(P80_HI)-X(P80_LO),height:H_-pt-pb,fill:'var(--ok)',opacity:.08},sv);
+  for(let i=0;i<=3;i++){const v=mn+(mx-mn)*i/3; el('line',{x1:pl,x2:W_-pr_,y1:Y(v),y2:Y(v),stroke:'var(--line)'},sv); el('text',{x:pl-5,y:Y(v)+3,fill:'var(--muted)','font-size':9.5,'text-anchor':'end',class:'dv'},sv,fmt(v,1));}
+  [140,170,200,230,260].forEach(p=>el('text',{x:X(p),y:H_-8,fill:'var(--muted)','font-size':9.5,'text-anchor':'middle',class:'dv'},sv,p+' µm'));
+  el('path',{d:ps.map((p,i)=>(i?'L':'M')+X(p).toFixed(1)+','+Y(vals[i]).toFixed(1)).join(''),fill:'none',stroke:'var(--genix)','stroke-width':2},sv);
+  if(best){ el('circle',{cx:X(best[0]),cy:Y(best[1]),r:5,fill:'var(--ok)'},sv); }
+  el('line',{x1:X(P80),x2:X(P80),y1:pt,y2:H_-pb,stroke:'var(--fg)','stroke-dasharray':'3 3'},sv);
+  const now=cu(P80);
+  $('optN').textContent=`Cu fino en t/h según P80. Actual ${P80} µm: ${fmt(now,1)} t/h. Recomendado ${best?best[0]:'-'} µm: ${best?fmt(best[1],1):'-'} t/h Cu, ${best?fmt(T(best[0])):'-'} t/h de mineral. Límite: agua y flotación.`;
+}
+
+
+
+
+/* ---------- Capa de modelos Genix ---------- */
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const txt=s=>String(s||'');
+const MODES={
+ chan:['Desgaste de manto y cóncavas','Rodamiento de excéntrica','Inchancable en cámara','Falla del sistema hidráulico'],
+ corr:['Atollo de chute por finos y arcilla','Desalineamiento de correa','Rodamiento de polea motriz','Desgaste de revestimiento de chute'],
+ sag1:['Lubricación de descansos','Desgaste de revestimientos','Sobrecarga del molino','Desgaste de corona y piñón'],
+ sag2:['Lubricación de descansos','Desgaste de revestimientos','Sobrecarga del molino','Desgaste de corona y piñón'],
+ bol1:['Rodamiento de bomba de ciclones','Desgaste de impulsor','Cavitación por nivel bajo de cajón','Embancamiento de ciclones'],
+ bol2:['Rodamiento de bomba de ciclones','Desgaste de impulsor','Falta de agua de sello','Embancamiento de ciclones'],
+ flot:['Rodamiento de bomba de remolienda','Desgaste de impulsor de celdas','Falla de soplador de aire'],
+ mo:['Torque alto en espesador colectivo','Falla de agitador de celdas Mo'],
+ conc:['Fuga en el ducto','Desgaste de bomba de desplazamiento positivo','Embancamiento de pulpa'],
+ rel:['Torque alto de rastras','Bajo % sólidos de descarga','Falla de bomba de descarga'],
+ tranque:['Drenaje lento de arena por ultrafinos','Revancha bajo el plan','Falla de bomba de relaves'],
+ rec:['Restricción en la impulsión','Desgaste de impulsor','Cavitación'],
+ mws:['Succión de sólidos','Desgaste de impulsor','Falla de motor'],
+ eb:['Fuga en el acueducto','Golpe de ariete','Desgaste de bombas'],
+ puerto:['Humedad alta en filtrado','Tela filtrante dañada']
+};
+const MAINM={inch:{chan:2},start:{bol2:2,sag1:2}};
+const VARS={
+ chan:[['Potencia del chancador',42],['Presión hidráulica',31],['Detector de metales',17],['Nivel de cámara',10]],
+ corr:[['Corriente del motor de correa',38],['Nivel del chute de traspaso',29],['Finos bajo 10 mm, sensor virtual',21],['Velocidad de correa',12]],
+ sag1:[['Presión de descansos',36],['Temperatura de aceite',27],['Potencia',21],['Carga del molino',16]],
+ sag2:[['Presión de descansos',36],['Temperatura de aceite',27],['Potencia',21],['Carga del molino',16]],
+ bol1:[['Vibración rodamiento lado accionamiento',41],['Temperatura de descanso',27],['Corriente de la bomba',18],['Presión de batería de ciclones',14]],
+ bol2:[['Presión de agua de sello',39],['Vibración de rodamiento',26],['Nivel de cajón',20],['Corriente de la bomba',15]],
+ flot:[['Vibración de descanso de bomba',37],['Temperatura de descanso',28],['Presión de agua de sello',21],['Corriente',14]],
+ mo:[['Torque del espesador',40],['Ley de Mo en colas',32],['pH y dosificación de reactivos',28]],
+ conc:[['Diferencia de caudal entrada y salida',46],['Onda de presión entre estaciones',32],['Densidad de pulpa',12],['Presión de descarga',10]],
+ rel:[['Torque de rastras',40],['% sólidos de descarga',35],['Dosificación de floculante',15],['Caudal de alimentación',10]],
+ tranque:[['Ultrafinos en arena de ciclones',38],['Tasa de crecimiento de cota',30],['Cota de relave',20],['Agua recuperada',12]],
+ rec:[['Presión de descarga sobre referencia',44],['Caudal',26],['Corriente',18],['Posición de válvula',12]],
+ mws:[['Caudal bajo la curva de diseño',41],['Presión de succión',29],['Corriente',18],['Densidad en succión',12]],
+ eb:[['Presión por estación',45],['Balance de caudal',35],['Corriente de bombas',20]],
+ puerto:[['Presión de soplado',38],['Tiempo de ciclo',32],['Humedad estimada',30]]
+};
+const ALT={chan:'Bajar la meta para estirar el stockpile mientras se retira el inchancable.',
+ corr:'Si no hay ventana, reducir la alimentación de correa 15 % y mezclar con mineral grueso hasta la limpieza.',
+ sag1:'Reducir la carga del molino y aumentar el caudal de aceite hasta la inspección.',sag2:'Reducir la carga del molino y aumentar el caudal de aceite hasta la inspección.',
+ bol1:'Pasar a la bomba de respaldo si está disponible, o bajar la carga de la línea al 80 % hasta el cambio.',
+ bol2:'Revisar el agua de sello y el nivel del cajón antes de subir carga.',
+ flot:'Operar la remolienda con un molino y reforzar la vigilancia de vibración hasta el cambio.',
+ mo:'Ajustar dosificación de reactivos y vigilar torque del espesador.',
+ conc:'Detener el bombeo, aislar el tramo y gestionar el acopio de concentrado.',
+ rel:'Bajar el caudal de alimentación al espesador y ajustar floculante.',
+ tranque:'Bajar la meta al 90 % y priorizar arena de mejor drenaje en el sector crítico.',
+ rec:'Operar con 3 bombas y bajar la presión de impulsión hasta el lavado de línea.',
+ mws:'Usar el inventario de piscinas y bajar la meta si el nivel cae bajo 30 %.',
+ eb:'Reducir presión en la estación afectada y despachar inspección.',puerto:'Aumentar tiempo de soplado y revisar telas en la próxima ventana.'};
+const fmtH=h=>h===Infinity?'sobre el horizonte':h<48?fmt(h,0)+' h':fmt(h/24,1)+' días';
+const P_=n=>ND[n]?ND[n].t:'Planta completa';
+function efm(n,h){ const ms=MODES[n]; if(!ms)return null; const mi=(MAINM[cur.id]&&MAINM[cur.id][n])||0;
+  const p0=clamp((98-h)/55,0.03,0.97); return ms.map((m,i)=>[m,i===mi?p0:clamp(p0*0.22/(i+1)+0.02*(i+1),0.01,0.4)]).sort((a,b)=>b[1]-a[1]); }
+function rulOf(n,t){ if(!sims.sin)return null; const s=sims.sin, o=s.out[Math.min(idx,s.N)]; if(o.hl[n]>=85&&sims[mode].out[Math.min(idx,s.N)].hl[n]>=85) return null;
+  if(mode==='con'&&!activeAlert(n,t)&&sims.con.out[Math.min(idx,s.N)].hl[n]>=85) return null;
+  for(let i=Math.min(idx,s.N);i<=s.N;i++){ if(s.out[i].hl[n]<12) return s.out[i].t-t; } return Infinity; }
+const MODELS=[
+ ['M01','mina','Sensor virtual de finos y arcilla','Sensor virtual','Model Fabric',['Fragmentación de tronadura','Potencia SAG','Corriente de correas','Mineralogía de pala'],'MAE 3 puntos','5 min'],
+ ['M02','chan','Modos de falla del chancador primario','EFM','APM EFM',['Potencia','Presión hidráulica','Vibración','Detector de metales'],'Precisión 90 %','1 min'],
+ ['M03','corr','Riesgo de atollo de chutes','Pronóstico','Model Fabric',['Corriente de motores','Nivel de chutes','Finos estimados','Velocidad'],'Anticipación 4 a 8 h','1 min'],
+ ['M04','sag1','Modos de falla SAG línea 1','EFM','APM EFM',['Presión de descansos','Temperatura de aceite','Potencia','Carga'],'Precisión 92 %','1 min'],
+ ['M05','sag2','Modos de falla SAG línea 2','EFM','APM EFM',['Presión de descansos','Temperatura de aceite','Potencia','Carga'],'Precisión 92 %','1 min'],
+ ['M06','sag1','Anomalías multivariables de molienda','Anomalías','Model Fabric',['22 señales de SAG, bolas y ciclones'],'Falsas alarmas 3 %','1 min'],
+ ['M07','sag1','Sensor virtual de P80','Sensor virtual','Model Fabric',['Presión y % sólidos de ciclones','Potencia de bolas','Carga circulante'],'MAE 6 µm','5 min'],
+ ['M08','bol1','Vida remanente de bombas de ciclones L1','RUL','APM RUL',['Vibración','Temperatura de descansos','Corriente','Presión de ciclones'],'Error 15 %','10 min'],
+ ['M09','bol2','Vida remanente de bombas de ciclones L2','RUL','APM RUL',['Vibración','Temperatura de descansos','Corriente','Agua de sello'],'Error 15 %','10 min'],
+ ['M10','bol1','Modos de falla de bombas de ciclones','EFM','APM EFM',['Vibración','Corriente','Nivel de cajón','Presión de sello'],'Precisión 91 %','1 min'],
+ ['M11','flot','Modos de falla de bombas de remolienda','EFM','APM EFM',['Vibración','Temperatura','Presión de agua de sello'],'Precisión 89 %','1 min'],
+ ['M12','flot','Sensor virtual de recuperación de Cu','Sensor virtual','Model Fabric',['Leyes de alimentación, concentrado y colas','P80','Reactivos'],'MAE 0,8 puntos','5 min'],
+ ['M13','mo','Sensor virtual de ley de Mo en concentrado','Sensor virtual','Model Fabric',['Ley de Mo en alimentación','Reactivos','pH'],'MAE 0,03 % Mo','15 min'],
+ ['M14','conc','Detección de fugas del concentraducto','Balance','Model Fabric',['Caudal de entrada y salida','Presión por estación','Densidad'],'Detección en 10 min','1 min'],
+ ['M15','puerto','Sensor virtual de humedad embarcable','Sensor virtual','Model Fabric',['Presión de soplado','Tiempo de ciclo','Granulometría de concentrado'],'MAE 0,2 puntos','5 min'],
+ ['M16','rel','Pronóstico de torque de rastras','Pronóstico','Model Fabric',['Torque','% sólidos','Floculante','Caudal'],'Anticipación 6 h','5 min'],
+ ['M17','tranque','Pronóstico de cota del muro y revancha','Pronóstico','Model Fabric',['Topografía del muro','Depositación','Arena producida','Ultrafinos'],'Error 0,2 m a 30 días','1 h'],
+ ['M18','tranque','Sensor virtual de ultrafinos en arena','Sensor virtual','Model Fabric',['Presión de ciclones de arena','% sólidos','P80'],'MAE 1,1 puntos','15 min'],
+ ['M19','rec','Modos de falla de bombas de agua recuperada','EFM','APM EFM',['Presión de descarga','Caudal','Corriente','Válvulas'],'Precisión 90 %','1 min'],
+ ['M20','mws','Desempeño de bombas de agua fresca','EFM','APM EFM',['Caudal frente a curva de diseño','Presión de succión','Corriente'],'Precisión 88 %','1 min'],
+ ['M21','eb','Detección de fugas del acueducto','Balance','Model Fabric',['Caudal por estación','Presión por estación'],'Detección en 10 min','1 min'],
+ ['M22','stock','Pronóstico de niveles de buffers','Pronóstico','Coordinador',['Stockpile, piscinas y acopio','Tonelajes y caudales'],'MAE 2 % a 12 h','5 min'],
+ ['M23','planta','Coordinador de restricciones','Simulación','Coordinador',['Capacidad y salud de las 18 etapas','Alertas abiertas'],'Balance de masa y agua cerrado','5 min'],
+ ['M24','planta','Optimizador de P80','Optimizador','Model Fabric',['Capacidad de molienda','Agua','Recuperación','Drenaje de arena'],'Restricción de muro','15 min'],
+ ['M25','planta','IA prescriptiva de eventos','IA prescriptiva','Genix IA',['Alertas','Historial de órdenes','Manuales y FMECA'],'Revisión por especialista','por evento'],
+ ['M26','planta','Calidad de dato de analizadores','Calidad de dato','Model Fabric',['Analizadores de partícula y de leyes','Laboratorio'],'Detección en 30 min','1 min']
+].map(a=>({id:a[0],n:a[1],name:a[2],type:a[3],eng:a[4],inp:a[5],perf:a[6],freq:a[7]}));
+const TYKEY={'EFM':['EFM','Rule-based'],'RUL':['RUL'],'Pronóstico':['Time series'],'Balance':['Rule-based + Time series'],'Sensor virtual':['sensor virtual'],'Calidad de dato':['calidad de dato'],'Anomalías':['permisivos']};
+function mOut(m,o,t){
+  const h=m.n!=='planta'&&o.hl[m.n]!=null?o.hl[m.n]:95, a=m.n!=='planta'?activeAlert(m.n,t):null;
+  const hit=a&&(TYKEY[m.type]||[]).some(k=>a.model.includes(k));
+  let out='',st=hit?2:(h<60?1:0);
+  switch(m.type){
+   case 'EFM':{ const e=efm(m.n,h); out=e[0][1]>0.3?`${e[0][0]}, ${fmt(e[0][1]*100,0)} %`:'Sin modo de falla activo'; break;}
+   case 'RUL':{ const r=rulOf(m.n,t); out=r==null?'Sin degradación, sobre 60 días':`RUL ${fmtH(r)}`; if(r!=null&&r<72) st=Math.max(st,1); break;}
+   case 'Anomalías':{ const hh=Math.min(o.hl.sag1,o.hl.sag2,o.hl.bol1,o.hl.bol2); const sc_=clamp((98-hh)/60,0.02,1); out=`Índice ${fmt(sc_,2)}, umbral 0,35`; if(sc_>0.35) st=Math.max(st,1); break;}
+   case 'Balance':{ const leak=(m.n==='conc'&&cur.id==='leak'&&t>=20&&t<(mode==='con'?44:56)); out=leak?(mode==='con'?'Fuga detectada y tramo aislado':'Desbalance 18 %, fuga en curso'):'Balance entrada y salida dentro de 1 %'; if(leak) st=Math.max(st,mode==='con'?2:1); break;}
+   case 'Sensor virtual':{
+     if(m.id==='M01'){ const fi=cur.id==='corr'||cur.id==='week'?(o.hl.mina<80?34:22):22; out=`Finos bajo 10 mm ${fi} %`; if(fi>30) st=Math.max(st,1); }
+     else if(m.id==='M07'){ out=`P80 ${fmt(MET.p,0)} µm`+(MET.an.p80l1?'':', reemplaza al analizador'); if(!MET.an.p80l1) st=2; }
+     else if(m.id==='M12') out=`Recuperación Cu ${fmt(MET.recCu*100,1)} %`;
+     else if(m.id==='M13') out=`Concentrado ${fmt(MET.cMo,2)} % Mo`;
+     else if(m.id==='M15'){ out=`Humedad ${fmt(MET.hum,1)} %, límite 9,5 %`; if(MET.hum>9.5) st=2; }
+     else if(m.id==='M18'){ out=`Ultrafinos ${fmt(MET.uf,1)} %, límite ${UF_MAX} %`; if(MET.uf>UF_MAX) st=Math.max(st,1); }
+     break;}
+   case 'Pronóstico':{
+     if(m.id==='M03'){ const rr=clamp((92-o.hl.corr)/80,0.02,0.98); out=`Riesgo de atollo ${fmt(rr*100,0)} % en 6 h`; if(rr>0.3) st=Math.max(st,1); }
+     else if(m.id==='M16') out=`Torque ${fmt(55+10*Math.sin(t/11)+(100-o.hl.rel)*0.4,0)} %, límite 85 %`;
+     else if(m.id==='M17'){ const mg=cur.id==='tranque'?(mode==='sin'?Math.max(0,20-t/24):Math.max(4,18-t/24+Math.max(0,(t-72)/24)*0.9)):45; out=`Margen de muro ${fmt(mg,0)} días`; if(mg<20) st=Math.max(st,1); }
+     else if(m.id==='M22'){ const tt=o.tte.slice().sort((x,y)=>x[1]-y[1])[0]; out=tt?`${tt[0]} en ${fmt(tt[1],1)} h`:'Buffers estables'; if(tt&&tt[1]<12) st=Math.max(st,1); }
+     break;}
+   case 'Simulación': out=o.R<meta-1?`Restricción ${o.bind}`:'Sin restricción bajo la meta'; if(o.R<meta-1) st=1; break;
+   case 'Optimizador': out=OPTBEST?`P80 recomendado ${OPTBEST[0]} µm, ${fmt(OPTBEST[1],1)} t/h de Cu fino`:'Sin recomendación'; break;
+   case 'IA prescriptiva':{ const n=NODES.filter(x=>activeAlert(x,t)).length; out=n?`${n} resumen${n>1?'es':''} de evento abierto${n>1?'s':''}`:'Sin eventos abiertos'; if(n) st=2; break;}
+   case 'Calidad de dato': out=MET.an.p80l1?'Analizadores consistentes':'Analizador P80 L1 congelado, sensor virtual activo'; if(!MET.an.p80l1) st=2; break;
+  }
+  if(mode==='sin'&&st===2&&m.type!=='Sensor virtual') st=1;
+  return {out,st};
+}
+const MST=[['Normal','var(--ok)'],['Vigilancia','var(--warn)'],['Alerta','var(--genix)']];
+let SEL=null, MF='Todos', QA=0, OPTBEST=null;
+function autoSel(o,t){ const a=NODES.filter(n=>activeAlert(n,t)); if(a.length) return a[a.length-1]; return NODES.filter(n=>MODES[n]).reduce((x,n)=>o.hl[n]<o.hl[x]?n:x,'bol1'); }
+function renderGx(o,t){
+  const sim=sims[mode];
+  const res=MODELS.map(m=>mOut(m,o,t)); const nal=res.filter(r=>r.st===2).length, nvi=res.filter(r=>r.st===1).length;
+  const nan=[MET.an.p80l1,MET.an.p80l2,MET.an.osa,MET.an.pala].filter(Boolean).length;
+  if($('aD'))$('aD').textContent=`2.860 señales, ${nan} de 4 analizadores en servicio`;
+  if($('aM'))$('aM').textContent=`${MODELS.length} modelos, ${nal} en alerta, ${nvi} en vigilancia`;
+  if($('aC'))$('aC').textContent=o.R<meta-1?`Restricción ahora: ${o.bind}`:'Planta en meta, holgura calculada';
+  const nav=mode==='con'?cur.events.filter(e=>e.mode==='con'&&e.kind==='alert'&&e.t<=t).length:0;
+  if($('aA'))$('aA').textContent=mode==='con'?`${nav} aviso${nav===1?'':'s'} al ERP generado${nav===1?'':'s'} por Genix`:'Sin intervención, avisos manuales tras la falla';
+  for(const n of NODES){ const c=MODELS.filter(m=>m.n===n).length; NE[n].mb.setAttribute('opacity',c?1:0); NE[n].mbt.textContent=c?c+(c>1?' modelos':' modelo'):''; NE[n].r.setAttribute('fill',n===(SEL||autoSel(o,t))?'#EEF2FF':'var(--panel2)'); }
+  const n=SEL||autoSel(o,t), h=o.hl[n], a=activeAlert(n,t);
+  $('adT').textContent='| '+ND[n].t+' '+ND[n].g; $('adS').textContent=SEL?'Selección manual':'Selección automática, última alerta';
+  const cards=[]; const e=efm(n,h);
+  if(e) cards.push(`<div class="mc${a?' al':''}"><div class="h"><b>Modos de falla</b><span class="ty">EFM</span></div><span class="sm">Probabilidad de cada modo según firmas de falla del equipo</span>${e.map(x=>`<div class="pb"><span>${x[0]}</span><span class="tr"><i style="width:${x[1]*100}%"></i></span><span class="vv">${fmt(x[1]*100,0)} %</span></div>`).join('')}</div>`);
+  const W_=300,H_=96,pl=26,pr=6,pt=6,pb=16, X=tt=>pl+(W_-pl-pr)*tt/cur.H, Y=v=>pt+(H_-pt-pb)*(1-v/100);
+  let dp='',dfut=''; const st=Math.max(1,Math.floor(sim.N/200));
+  for(let i=0;i<=Math.min(idx,sim.N);i+=st){ const q=sim.out[i]; dp+=(dp?'L':'M')+X(q.t).toFixed(1)+','+Y(q.hl[n]).toFixed(1); }
+  const ss=sims.sin; for(let i=Math.min(idx,ss.N);i<=ss.N;i+=st){ const q=ss.out[i]; dfut+=(dfut?'L':'M')+X(q.t).toFixed(1)+','+Y(q.hl[n]).toFixed(1); }
+  const r=rulOf(n,t);
+  cards.push(`<div class="mc${a?' al':''}"><div class="h"><b>Salud y vida remanente</b><span class="ty">RUL</span></div><span class="big">HI ${fmt(h,0)}</span><span class="sm">${r==null?'Sin degradación, vida remanente sobre 60 días':'Vida remanente estimada '+fmtH(r)+(r!==Infinity?', banda de 15 %':'')}</span><svg viewBox="0 0 ${W_} ${H_}" role="img" aria-label="Salud del activo"><rect x="${pl}" y="${Y(20)}" width="${W_-pl-pr}" height="${Y(0)-Y(20)}" fill="var(--crit)" opacity=".12"/>${[0,50,100].map(v=>`<text x="${pl-4}" y="${Y(v)+3}" fill="var(--muted)" font-size="9" text-anchor="end">${v}</text>`).join('')}<path d="${dfut}" fill="none" stroke="var(--muted)" stroke-width="1.3" stroke-dasharray="4 3"/><path d="${dp}" fill="none" stroke="var(--genix)" stroke-width="2"/><line x1="${X(t)}" x2="${X(t)}" y1="${pt}" y2="${H_-pb}" stroke="var(--fg)" opacity=".6"/><text x="${pl}" y="${H_-3}" fill="var(--muted)" font-size="9">Azul real, gris proyección sin intervención, rojo zona de falla</text></svg></div>`);
+  const vk=VARS[n];
+  if(vk) cards.push(`<div class="mc"><div class="h"><b>Por qué lo dice el modelo</b><span class="ty">Explicabilidad</span></div><span class="sm">Aporte de cada variable a la alerta</span>${vk.map(v=>`<div class="pb"><span>${v[0]}</span><span class="tr"><i style="width:${v[1]*1.8}%"></i></span><span class="vv">${v[1]} %</span></div>`).join('')}</div>`);
+  const own=MODELS.filter(m=>m.n===n);
+  cards.push(`<div class="mc"><div class="h"><b>Modelos de este activo</b><span class="ty">${own.length||'Sin'} modelo${own.length===1?'':'s'}</span></div>${own.length?own.map(m=>{const q=mOut(m,o,t);return `<div><span class="sm">${m.id} ${m.type}, ${m.eng}</span><br>${m.name}<br><span style="color:${MST[q.st][1]}">${q.out}</span></div>`;}).join(''):'<span class="sm">Etapa cubierta por el coordinador y el pronóstico de buffers.</span>'}</div>`);
+  $('adC').innerHTML=cards.join('');
+  const ley=0.6, rc=0.86;
+  if(a){ const fail=cur.events.find(x=>x.node===n&&x.mode==='sin'&&x.kind==='fail'&&x.t>a.t); const rk=riskList().find(x=>x.e===a);
+    $('adP').innerHTML=`<span class="k">Resumen Genix IA</span><span style="color:var(--genix)">${a.model}, ${tf(a.t)}</span><span class="k">Causa probable</span><span>${txt(a.text)}</span><span class="k">Si no se actúa</span><span>${fail?txt(fail.text)+' ':''}${rk?`Se dejan de procesar ${fmt(rk.v/1000,1)} kt de mineral, unas ${fmt(rk.v*MET.f/100*MET.recCu,0)} t de cobre fino.`:''}</span><span class="k">Acción recomendada</span><span>${txt(a.act)}</span><span class="k">Alternativa</span><span>${ALT[n]||'Monitorear con mayor frecuencia hasta la próxima ventana.'}</span>`; }
+  else $('adP').innerHTML=`<span class="k">Resumen Genix IA</span><span>${mode==='con'?'Sin evento abierto en este activo.':'Modo sin intervención, las alertas no se atienden.'} ${h<70?'Hay degradación en tendencia y los modelos siguen su evolución.':'Operación dentro de su patrón normal.'}</span>`;
+  const types=['Todos',...new Set(MODELS.map(m=>m.type))];
+  $('mFlt').innerHTML=types.map(x=>`<button class="chip" data-f="${x}" aria-pressed="${x===MF}">${x}</button>`).join('');
+  $('mCnt').innerHTML=`<span><b>${MODELS.length}</b>modelos</span><span><b>${fmt(MODELS.reduce((s,m)=>s+({'1 min':1440,'5 min':288,'10 min':144,'15 min':96,'1 h':24}[m.freq]||10),0))}</b>inferencias por día</span><span><b>${nal}</b>en alerta</span><span><b>${nvi}</b>en vigilancia</span>`;
+  $('mT').innerHTML=MODELS.map((m,i)=>[m,res[i]]).filter(([m])=>MF==='Todos'||m.type===MF).sort((x,y)=>y[1].st-x[1].st).map(([m,q])=>`<tr${m.n===n?' class="hl"':''}><td><span class="n">${m.id}</span> ${m.name}</td><td class="mod">${m.type}<br><span style="color:var(--muted)">${m.eng}</span></td><td>${P_(m.n)}</td><td style="color:var(--muted)">${m.inp.join(', ')}</td><td>${q.out}</td><td style="color:var(--muted)">${m.perf}</td><td class="n">${m.freq}</td><td><span class="mst" style="color:${MST[q.st][1]};border-color:${MST[q.st][1]}">${MST[q.st][0]}</span></td></tr>`).join('');
+  renderQA(o,t);
+}
+$('mFlt').addEventListener('click',e=>{ const f=e.target.dataset.f; if(!f)return; MF=f; render(); });
+/* ---------- Genix Copilot ---------- */
+const QS=['Restricción actual','Prioridad de intervención','Pérdida sin intervención','Meta máxima sostenible','P80 recomendado'];
+function renderQA(o,t){
+  $('qs').innerHTML=QS.map((q,i)=>`<button data-q="${i}" aria-pressed="${i===QA}">${q}</button>`).join('');
+  const caps=o.caps.slice().sort((a,b)=>a[1]-b[1]); let A='',S='';
+  if(QA===0){ A=o.R<meta-1?`Ahora limita ${o.bind}, con ${fmt(o.R)} t/h contra una meta de ${fmt(meta)} t/h. `:`La planta está en la meta de ${fmt(meta)} t/h. `; A+=`Las etapas con menos holgura son ${caps[0][0]} con ${fmt(caps[0][1])} t/h y ${caps[1][0]} con ${fmt(caps[1][1])} t/h.`; const tt=o.tte.slice().sort((x,y)=>x[1]-y[1])[0]; if(tt) A+=` Atención: ${tt[0].toLowerCase()} en ${fmt(tt[1],1)} h.`; S='M23 Coordinador de restricciones, M22 Pronóstico de buffers'; }
+  else if(QA===1){ const L=mode==='con'?riskList().filter(x=>x.e.t<=t&&t<x.end):[]; if(L.length){ const x=L[0]; A=`Prioriza ${ND[x.e.node].t} (${ND[x.e.node].g}). ${txt(x.e.act)} Evita dejar de procesar ${fmt(x.v/1000,1)} kt de mineral.`; } else { const w=NODES.filter(n=>MODES[n]).reduce((a,n)=>o.hl[n]<o.hl[a]?n:a,'bol1'); A=`No hay alertas abiertas. El activo con menor salud es ${ND[w].t} con HI ${fmt(o.hl[w],0)}, sin acción requerida por ahora.`; } S='M25 IA prescriptiva, modelos EFM y RUL'; }
+  else if(QA===2){ const sc_=stats(sims.con,sims.con.N), ss=stats(sims.sin,sims.sin.N); const d=ss.lost-sc_.lost;
+    A=`En el escenario ${cur.name.toLowerCase()}, sin intervención se dejan de procesar ${fmt(d/1000,1)} kt de mineral frente a seguir las recomendaciones, unas ${fmt(d*MET.f/100*MET.recCu,0)} t de cobre fino, en ${cur.H<=200?fmt(cur.H,0)+' h':fmt(cur.H/24,0)+' días'}.`; S='M23 Coordinador, simulación con y sin acción'; }
+  else if(QA===3){ A=`Con la salud actual la planta sostiene hasta ${fmt(caps[0][1])} t/h. Sobre esa cifra limita ${caps[0][0]}${caps[1]?`, y después ${caps[1][0]} en ${fmt(caps[1][1])} t/h`:''}.`; S='M23 Coordinador de restricciones'; }
+  else { A=OPTBEST?`Con las restricciones de ahora conviene un P80 de ${OPTBEST[0]} µm: ${fmt(OPTBEST[2])} t/h de mineral y ${fmt(OPTBEST[1],1)} t/h de cobre fino. Hoy está en ${fmt(MET.p,0)} µm. Bajo 175 µm la arena no drena para el muro, y sobre ese punto limita el agua o la flotación.`:'Sin recomendación con la planta detenida.'; S='M24 Optimizador de P80, M07 Sensor virtual de P80, M18 Ultrafinos en arena'; }
+  $('ans').innerHTML=`<span class="who">Genix Copilot</span><span>${A}</span><span class="src3">Fuentes: ${S}</span>`;
+}
+$('qs').addEventListener('click',e=>{ const q=e.target.dataset.q; if(q==null)return; QA=+q; render(); });
+
+/* ---------- Avisos de mantenimiento al ERP ---------- */
+const FLOC={mo:'340-TK-001',eb:'920-PS-003',mina:'100-MN',chan:'210-CR-001',corr:'220-CV-002',stock:'240-FE-001',sag1:'310-ML-001',sag2:'310-ML-002',bol1:'310-PP-012',bol2:'310-PP-013',flot:'330-PP-074',conc:'340-TK-001',puerto:'500-TR',rel:'410-TK-001',tranque:'410-TQ-001',rec:'920-PP-008',pond:'920-PN-001',mws:'920-PP-020'};
+const PRI=['1 Muy alta','2 Alta','3 Media','4 Baja'];
+const PCOL=['var(--crit)','var(--hot)','var(--warn)','var(--muted)'];
+const STS=['Aviso creado','OT aprobada','En ejecución','Cerrada'];
+const SCOL=['var(--genix)','var(--warn)','var(--hot)','var(--ok)'];
+function notiList(t){
+  const out=[]; const risk=(mode==='con'?riskList():[]);
+  if(mode==='con'){
+    cur.events.filter(e=>e.mode==='con'&&e.kind==='alert'&&e.t<=t).sort((a,b)=>a.t-b.t).forEach((e,i)=>{
+      const act=cur.events.find(x=>x.node===e.node&&x.mode==='con'&&x.kind==='action'&&x.t>e.t);
+      const fail=cur.events.find(x=>x.node===e.node&&x.mode==='sin'&&x.kind==='fail'&&x.t>e.t);
+      const rv=(risk.find(x=>x.e===e)||{v:0}).v; const p=rv>20000?0:rv>5000?1:rv>1000?2:3;
+      let st=0; if(t>=e.t+0.25) st=1; if(act&&t>=act.t) st=2; if(act&&t>=act.t+3) st=3;
+      out.push({i,e,src:'Genix '+e.model,p,st,due:fail?fail.t:(act?act.t:null),desc:e.text,auto:true});
+    });
+  } else {
+    cur.events.filter(e=>e.mode==='sin'&&e.kind==='fail'&&e.t+0.5<=t&&FLOC[e.node]&&!['stock','pond','conc','tranque'].includes(e.node)||(e.mode==='sin'&&e.kind==='fail'&&e.t+0.5<=t&&['conc','tranque'].includes(e.node)&&e.text.length>0&&!/vacío|mínimo|lleno/.test(e.text))).sort((a,b)=>a.t-b.t).forEach((e,i)=>{
+      const md=cur.mods.find(m=>(m.m==='sin'||m.m==='both')&&m.t0<=e.t+0.01&&m.t1>e.t+0.01&&m.n!=='meta'); const end=md?md.t1:null;
+      let st=0; if(t>=e.t+1) st=1; if(t>=e.t+1.5) st=2; if(end&&t>=end) st=3;
+      out.push({i,e,src:'Manual por operador',p:0,st,due:e.t,desc:'Avería. '+e.text,auto:false});
+    });
+  }
+  return out.reverse();
+}
+function renderNoti(t){
+  $('notiH').innerHTML='<tr><th>Aviso</th><th>Tipo</th><th>Orden de trabajo</th><th>Equipo</th><th>Prioridad</th><th>Descripción</th><th>Origen</th><th>Inicio requerido</th><th>Estado</th></tr>';
+  const L=notiList(t), tb=$('notiB'); tb.innerHTML='';
+  if(!L.length){ tb.innerHTML=`<tr><td colspan="9" class="empty">Sin avisos ${mode==='con'?'generados por Genix':'creados'} hasta ${tf(t)}.</td></tr>`; return; }
+  for(const x of L){
+    const n=(mode==='con'?0:50)+x.i;
+    const av='AV-'+String(451+n).padStart(5,'0'), ot=x.st>=1?'OT-'+String(12020+n):'-';
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td class="n">${av}</td><td>${x.auto?'Predictivo':'Correctivo'}</td><td class="n">${ot}</td><td class="n">${FLOC[x.e.node]}</td><td><span class="pr" style="background:${PCOL[x.p]}">${PRI[x.p]}</span></td><td>${x.desc}</td><td class="${x.auto?'mod':''}" style="${x.auto?'':'color:var(--muted)'}">${x.src}</td><td>${x.due!=null?tf(x.due):'-'}</td><td><span class="st2" style="color:${SCOL[x.st]};border-color:${SCOL[x.st]}">${STS[x.st]}</span></td>`;
+    tb.appendChild(tr);
+  }
+}
+
+/* ---------- Estado de equipos ---------- */
+function renderEq(o,t){
+  const tb=$('eqT'); tb.innerHTML='';
+  const rows=NODES.map(n=>{ const a=activeAlert(n,t); const fl=mode==='sin'?cur.events.filter(e=>e.node===n&&e.mode==='sin'&&e.kind==='fail'&&e.t<=t).pop():null; return {n,h:o.hl[n],a,fl}; }).sort((x,y)=>x.h-y.h).slice(0,8);
+  for(const r of rows){ const tr=document.createElement('tr');
+    const diag=r.a?r.a.text:r.fl?r.fl.text:(r.h>=85?'Operación normal':'Degradación en tendencia, sin alerta abierta');
+    tr.innerHTML=`<td>${ND[r.n].t}</td><td class="n">${ND[r.n].g}</td><td><span class="hip" style="background:${band(r.h)}">${fmt(r.h,0)}</span></td><td>${diag}</td><td class="mod">${r.a?r.a.model:''}</td><td>${r.a?(r.a.act||''):''}</td>`; tb.appendChild(tr); }
+}
+
+
+/* ---------- Controles ---------- */
+function setMode(m){mode=m;$('mCon').setAttribute('aria-pressed',m==='con');$('mSin').setAttribute('aria-pressed',m==='sin');render();}
+$('mCon').onclick=()=>setMode('con'); $('mSin').onclick=()=>setMode('sin');
+$('scrub').oninput=e=>{idx=+e.target.value;render();};
+$('meta').oninput=e=>{meta=+e.target.value;$('metaV').textContent=fmt(meta)+' t/h';$('wfMeta').textContent=fmt(meta);run();drawChart();render();};
+$('p80').oninput=e=>{P80=+e.target.value;$('p80V').textContent=P80+' µm';run();drawChart();render();};
+
+
+const sp=[['v1',1],['v2',4],['v3',16]];
+sp.forEach(([id,v])=>$(id).onclick=()=>{speed=v;sp.forEach(([j])=>$(j).setAttribute('aria-pressed',j===id));});
+$('play').onclick=()=>{playing=!playing;$('play').textContent=playing?'Pausa':'Reproducir';if(playing&&idx>=sims.con.N)idx=0;last=performance.now();render();if(playing)requestAnimationFrame(tick);};
+function tick(now){
+  if(!playing)return;
+  const el_=(now-last)/1000; last=now;
+  const hoursPerSec=(cur.H<=200?cur.H/60:cur.H/40)*speed;
+  idx=Math.min(sims.con.N,idx+el_*hoursPerSec/sims.con.dt);
+  const i0=idx; idx=Math.round(idx); render(); idx=i0;
+  if(i0>=sims.con.N){playing=false;$('play').textContent='Reproducir';idx=sims.con.N;render();return;}
+  requestAnimationFrame(tick);
+}
+select(SC[0]);
+
+/* ---------- Modo live: ?src=<json> o parámetros directos ---------- */
+function applyLive(j){
+  LIVE={R:j.tph_l1!=null?(+j.tph_l1)+(+j.tph_l2||0):undefined,S:j.stock_pct!=null?j.stock_pct/100*K.Smax:undefined,P:j.pond_pct!=null?j.pond_pct/100*K.Pmax:undefined,C:j.conc_pct!=null?j.conc_pct/100*K.Cmax:undefined,health:j.health||{}};
+  if(j.p80){P80=+j.p80;$('p80').value=P80;$('p80V').textContent=P80+' µm';}
+  $('src').textContent='EN LÍNEA | '+(j.ts||''); $('src').style.color='var(--ok)';
+  if(Array.isArray(j.alerts)){ const base=SC.find(x=>x.id==='base'); j.alerts.forEach(a=>base.events.push(E(0,'con',a.node,'alert',a.model||'Genix',a.text||'',a.act||''))); }
+  cur=SC.find(x=>x.id==='base'); select(cur); idx=0; render();
+}
+(function(){ try{ const q=new URLSearchParams(location.search); const src=q.get('src');
+  if(src){ fetch(src+(src.includes('?')?'&':'?')+'_='+Date.now(),{credentials:'omit'}).then(r=>r.json()).then(applyLive).catch(e=>{$('src').textContent='SIN CONEXIÓN, MODO SIMULACIÓN'; console.warn(e);}); }
+  else if(q.get('tph_l1')){ const j={}; q.forEach((v,k)=>j[k]=v); applyLive(j); }
+}catch(e){} })();
+window.__COORD={SC,simulate,K,metal:(o,t,sc,m)=>{const c0=cur,m0=mode;cur=sc;mode=m;const r=metal(o,t);cur=c0;mode=m0;return r;},P80R:[P80_LO,P80_HI],UF_MAX};
+})();
+</script>
