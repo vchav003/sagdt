@@ -146,7 +146,7 @@ text{font-family:"Consolas",ui-monospace,monospace}
     <div class="scn" id="scn">SEEDED FAILURE SCENARIO &nbsp;&mdash;&nbsp; NOT THE CURRENT STATE OF THE ASSET</div>
   </div>
   <div class="rt">LIVE TWIN &nbsp;/&nbsp; DWG CA-SAG-GMD-DT-003<br>
-    REV. J &nbsp;/&nbsp; BUILD 2026-10-14 &nbsp;/&nbsp; EFM 17 TAGS</div>
+    REV. L &nbsp;/&nbsp; BUILD 2026-10-14 &nbsp;/&nbsp; EFM 17 TAGS</div>
 </div>
 
 <div class="tbar">
@@ -273,6 +273,10 @@ TAGS.forEach(function(t){
   ALIAS[t.id]=t.id; ALIAS[t.t]=t.id; ALIAS[t.t.replace(/-/g,"_")]=t.id;
   ALIAS[t.t.replace(/-/g,"")]=t.id;
 });
+/* neutral keys: a payload may name the eleven EFM parameters s1..s11 and their
+   KDI k1..k11, so a file published outside Genix carries no tag numbers at all.
+   The order below is the EFM order and must not be reshuffled. */
+TAGS.slice(0,11).forEach(function(t,i){ ALIAS["S"+(i+1)]=t.id; ALIAS[""+(i+1)]=t.id; });
 function aliasOf(k){
   if(k==null) return null;
   var s=String(k).trim();
@@ -341,14 +345,27 @@ function showDebug(){
     +'<tr><td>PARAMETER</td><td>VALUE</td><td>TAG</td><td>NUMBER</td></tr>'+rows+'</table>';
   el.style.display="block";
 }
-function pollApi(url){
-  fetch(url,{credentials:"include",headers:{Accept:"application/json"}})
+/* two fetch modes, and the difference matters:
+   api  -> the Genix service itself, same session, cookies must travel  -> credentials include
+   src  -> a public JSON left outside by the orchestrator, no session   -> credentials omit
+   A server answering "Access-Control-Allow-Origin: *" REFUSES a credentialed request,
+   so sending cookies to the public file would break the very thing we are trying to read. */
+function pollApi(url,mode){
+  var pub=(mode==="src");
+  var u=url+(pub?((url.indexOf("?")<0?"?":"&")+"t="+Date.now()):"");
+  var o={credentials:pub?"omit":"include",cache:pub?"no-store":"default",
+         headers:{Accept:"application/json"}};
+  /* KSH app services are published as POST; ?post=1 switches the call over so a
+     405 is never mistaken for the browser blocking the request. */
+  if(!pub && /[?&]post=1/.test(location.search)){
+    o.method="POST"; o.body="{}"; o.headers["Content-Type"]="application/json"; }
+  fetch(u,o)
    .then(function(r){ if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); })
    .then(function(j){
       var rows = Array.isArray(j) ? j : (j.data||j.Data||j.rows||j.Rows||j.result||[j]);
       if(!Array.isArray(rows)) rows=[rows];
       var n=takeRow(rows[0]||{});
-      KSH.src="KSH service";
+      KSH.src = pub ? "Genix data lake" : "KSH service";
       if(!n) KSH.err="the response has no column matching a tag";
       if(typeof render==="function") render();
    })
@@ -978,8 +995,13 @@ function fit(){
 window.addEventListener("resize",fit); fit();
 
 readQuery(); showDebug();
-var _api=(location.search.match(/[?&]api=([^&]+)/)||[])[1];
-if(_api){ _api=decodeURIComponent(_api); pollApi(_api); setInterval(function(){pollApi(_api);},60000); }
+var _q=location.search.replace(/\?/g,"&");
+var _api=(_q.match(/[&]api=([^&]+)/)||[])[1], _src=(_q.match(/[&]src=([^&]+)/)||[])[1];
+var _every=parseInt((_q.match(/[&]every=(\d+)/)||[])[1],10)||60;
+function _start(u,m){ u=decodeURIComponent(u); pollApi(u,m);
+  setInterval(function(){ pollApi(u,m); }, Math.max(15,_every)*1000); }
+if(_src)      _start(_src,"src");
+else if(_api) _start(_api,"api");
 
 setMode("live"); mark(-1); setSync(!KSH.on); requestAnimationFrame(tick);
 })();
