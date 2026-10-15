@@ -146,7 +146,7 @@ text{font-family:"Consolas",ui-monospace,monospace}
     <div class="scn" id="scn">SEEDED FAILURE SCENARIO &nbsp;&mdash;&nbsp; NOT THE CURRENT STATE OF THE ASSET</div>
   </div>
   <div class="rt">LIVE TWIN &nbsp;/&nbsp; DWG CA-SAG-GMD-DT-003<br>
-    REV. L &nbsp;/&nbsp; BUILD 2026-10-14 &nbsp;/&nbsp; EFM 17 TAGS</div>
+    REV. M &nbsp;/&nbsp; BUILD 2026-10-14 &nbsp;/&nbsp; EFM 17 TAGS</div>
 </div>
 
 <div class="tbar">
@@ -340,8 +340,12 @@ function showDebug(){
       +'<td class="'+(isNaN(x)?"no":"ok")+'">'+(isNaN(x)?"not a number":x)+'</td></tr>';
   });
   var raw=String(location.search||"(empty)").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  var msg='<div class="raw">MESSAGES FROM THE HOST &nbsp;'
+    +(MSGS.length?MSGS.length:'none yet')+'</div>';
+  if(MSGS.length) msg+='<div class="raw">'+MSGS.map(function(m){
+      return '['+esc(m.o)+'] '+esc(m.t); }).join('<br>')+'</div>';
   el.innerHTML='<h4>WHAT THE FRAME CHART SENT</h4>'
-    +'<div class="raw">URL QUERY &nbsp;'+raw+'</div><table>'
+    +'<div class="raw">URL QUERY &nbsp;'+raw+'</div>'+msg+'<table>'
     +'<tr><td>PARAMETER</td><td>VALUE</td><td>TAG</td><td>NUMBER</td></tr>'+rows+'</table>';
   el.style.display="block";
 }
@@ -350,6 +354,37 @@ function showDebug(){
    src  -> a public JSON left outside by the orchestrator, no session   -> credentials omit
    A server answering "Access-Control-Allow-Origin: *" REFUSES a credentialed request,
    so sending cookies to the public file would break the very thing we are trying to read. */
+/* ── the other possible bridge: window messages ───────────────────────────────
+   The Frame Chart has an Events tab and an Event Types field, which in this
+   kind of platform means the host talks to the embedded page by postMessage.
+   The URL route is proven dead, so the twin now (a) announces itself to the
+   host and asks for data, and (b) listens for anything the host sends back,
+   showing it verbatim in the debug panel and ingesting it when the payload
+   carries columns it recognises. Nothing is executed: the message is read as
+   data, never as instructions.                                               */
+var MSGS=[];
+function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function hello(){
+  try{ if(window.parent && window.parent!==window)
+    window.parent.postMessage({source:"sag903-twin",type:"ready",want:"data"},"*"); }catch(e){}
+}
+window.addEventListener("message", function(ev){
+  var d=ev.data, txt;
+  try{ txt=(typeof d==="string")?d:JSON.stringify(d); }catch(e){ txt=String(d); }
+  if(txt && txt.indexOf('"source":"sag903-twin"')>=0) return;   /* our own echo */
+  MSGS.push({o:ev.origin||"(no origin)", t:String(txt).slice(0,500)});
+  if(MSGS.length>6) MSGS.shift();
+  var obj=d;
+  if(typeof obj==="string"){ try{ obj=JSON.parse(obj); }catch(e){ obj=null; } }
+  if(obj && typeof obj==="object"){
+    var rows = Array.isArray(obj) ? obj
+             : (obj.data||obj.Data||obj.rows||obj.Rows||obj.result||obj.payload||[obj]);
+    if(!Array.isArray(rows)) rows=[rows];
+    var n=0; try{ n=takeRow(rows[0]||{}); }catch(e){}
+    if(n){ KSH.src="Frame Chart event"; KSH.err=null; }
+  }
+  try{ showDebug(); if(typeof render==="function") render(); }catch(e){}
+});
 function pollApi(url,mode){
   var pub=(mode==="src");
   var u=url+(pub?((url.indexOf("?")<0?"?":"&")+"t="+Date.now()):"");
@@ -1002,6 +1037,8 @@ function _start(u,m){ u=decodeURIComponent(u); pollApi(u,m);
   setInterval(function(){ pollApi(u,m); }, Math.max(15,_every)*1000); }
 if(_src)      _start(_src,"src");
 else if(_api) _start(_api,"api");
+/* the host may subscribe late, so the handshake is repeated a few times */
+hello(); setTimeout(hello,1200); setTimeout(hello,4000); setTimeout(hello,10000);
 
 setMode("live"); mark(-1); setSync(!KSH.on); requestAnimationFrame(tick);
 })();
