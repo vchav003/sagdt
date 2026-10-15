@@ -1,0 +1,1083 @@
+<title>Coordinador Planta Cemento</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: sala de control. Cabecera de mando, franja de indicadores, flowsheet de planta completa a la izquierda,
+   cadena de restricciones y tendencia a la derecha, bitácora y casos de uso abajo. Tema oscuro único, deliberado. */
+:root{
+  --bg:#1A1A1A; --panel:#232323; --panel2:#2E2E2E; --line:#3D3D3D; --fg:#F0F0F0; --muted:#A3A3A3; --dim:#6E6E6E;
+  --brand:#FF000F; --genix:#5C85FF; --water:#3E80C9; --conc:#C88A4A; --ore:#BABABA; --tail:#7A7A7A;
+  --ok:#0CA919; --warn:#FFD800; --hot:#FF7300; --crit:#F03040;
+  --f-ui:"ABBvoice","ABBvoiceOffice",Arial,sans-serif; --f-data:"ABBvoice","ABBvoiceOffice",Arial,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-ui);font-size:14px;line-height:1.45}
+.wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:14px 28px;max-width:none;width:100%;margin:0;display:flex;flex-direction:column;gap:14px}
+header.top{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:10px}
+.brand{display:flex;flex-direction:column;gap:2px;min-width:0}
+.brand .eyebrow{font-size:12px;color:var(--muted)}
+.brand h1{margin:0;font-size:24px;font-weight:600;letter-spacing:.01em;text-wrap:balance}
+.brand p{margin:0;color:var(--muted);font-size:13px}
+.abb{font-weight:700;color:var(--brand);font-size:22px;letter-spacing:.06em}
+.src{font-family:var(--f-data);font-size:11px;padding:4px 8px;border:1px solid var(--line);border-radius:0;color:var(--warn)}
+.controls{display:flex;flex-direction:column;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:0;padding:12px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:inherit;font-size:12.5px;color:var(--fg);background:var(--panel2);border:1px solid var(--line);border-radius:0;padding:6px 10px;cursor:pointer}
+.chip:hover{border-color:var(--muted)}
+.chip[aria-pressed="true"]{border-color:var(--genix);color:var(--genix);background:#24305A}
+.chip:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--genix);outline-offset:2px}
+.row{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:0;overflow:hidden}
+.seg button{font:inherit;font-size:13px;background:var(--panel2);color:var(--muted);border:0;padding:7px 14px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--genix);color:#fff;font-weight:600}
+.seg button.sin[aria-pressed="true"]{background:var(--muted);color:#0D1117}
+.btn{font:inherit;font-size:13px;background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:0;padding:7px 14px;cursor:pointer;min-width:90px}
+.scrub{flex:1 1 260px;display:flex;align-items:center;gap:10px;min-width:0}
+.scrub input{flex:1;min-width:0;accent-color:var(--genix)}
+.clock{font-family:var(--f-data);font-size:13px;color:var(--fg);min-width:96px;text-align:right}
+label.meta{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted)}
+label.meta input{width:120px;accent-color:var(--brand)}
+.desc{margin:0;color:var(--muted);font-size:13px;max-width:110ch}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:0;padding:10px 12px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.kpi .k{font-size:12px;color:var(--muted)}
+.kpi .v{font-family:var(--f-data);font-size:22px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.kpi .s{font-size:12px;color:var(--muted);min-height:1.4em}
+.logo{height:26px;width:auto}
+.main{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:14px}
+@media (max-width:1100px){.main{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:0;padding:12px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.panel h2{margin:0;font-size:14px;font-weight:600;color:var(--fg)}
+.panel h2 b{color:var(--fg);font-weight:600}
+.flowbox{overflow-x:auto}
+.flowbox svg{display:block;width:100%;min-width:820px;height:auto}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:18px;height:3px;vertical-align:middle;margin-right:6px}
+.side{display:flex;flex-direction:column;gap:14px;min-width:0}
+.bars{display:flex;flex-direction:column;gap:7px}
+.bar{display:grid;grid-template-columns:130px minmax(0,1fr) 64px;gap:8px;align-items:center;font-size:12.5px}
+.bar .lab{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar .track{position:relative;height:12px;background:var(--panel2);border-radius:2px}
+.bar .fill{position:absolute;inset:0 auto 0 0;background:#555555;border-radius:2px}
+.bar.isbind .fill{background:var(--crit)}
+.bar.isbind .lab{color:var(--fg)}
+.bar .val{font-family:var(--f-data);text-align:right;font-variant-numeric:tabular-nums}
+.bar .mk{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--fg);opacity:.8}
+.note{font-size:12px;color:var(--muted);margin:0}
+.chart svg{width:100%;height:auto;display:block}
+.chart{cursor:crosshair}
+.lower{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.6fr);gap:14px}
+@media (max-width:1100px){.lower{grid-template-columns:minmax(0,1fr)}}
+.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;max-height:430px;overflow:auto}
+.log li{display:grid;grid-template-columns:74px minmax(0,1fr);gap:10px;font-size:13px;padding:8px 10px;background:var(--panel2);border-radius:0;border-left:3px solid var(--line)}
+.log li.alert{border-left-color:var(--genix)}
+.log li.fail{border-left-color:var(--crit)}
+.log li.action{border-left-color:var(--ok)}
+.log .t{font-family:var(--f-data);font-size:12px;color:var(--muted)}
+.log .m{display:inline-block;font-family:var(--f-data);font-size:10.5px;color:var(--genix);border:1px solid #3B4F99;border-radius:2px;padding:0 5px;margin-right:6px}
+.log .a{color:var(--muted);font-size:12px}
+.empty{color:var(--muted);font-size:13px}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:12.5px}
+.sel{font:inherit;font-size:13px;background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:0;padding:6px 8px;max-width:100%}
+.st2{display:inline-block;font-size:11.5px;padding:1px 6px;border:1px solid;white-space:nowrap}
+.pr{display:inline-block;white-space:nowrap;min-width:20px;text-align:center;font-weight:600;color:#1A1A1A;padding:0 4px}
+table.noti td{white-space:normal}
+table.noti td.n{white-space:nowrap}
+.hip{display:inline-block;min-width:34px;text-align:center;font-family:var(--f-data);font-size:11.5px;border-radius:2px;padding:1px 4px;color:#0D1117}
+th,td{text-align:left;vertical-align:top;padding:7px 8px;border-bottom:1px solid var(--line)}
+th{font-size:12px;color:var(--muted);font-weight:500}
+td.n{font-family:var(--f-data);color:var(--muted)}
+tr.hl td{background:#24305A}
+.mod{color:var(--genix)}
+.sup{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px 18px;font-size:12.5px;color:var(--muted)}
+.sup label{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.sup input{width:90px;font:inherit;font-family:var(--f-data);background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:0;padding:4px 6px;text-align:right}
+.mono{font-family:var(--f-data)}
+
+.ctx{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
+.cx{border:1px solid var(--line);border-radius:0;padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.cx.hl{border-color:var(--brand)}
+.cx .k{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.cx .v{font-family:var(--f-data);font-size:19px}
+.cx .s{font-size:12px;color:var(--muted)}
+.src2{grid-column:1/-1}
+.tri{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+@media (max-width:1200px){.tri{grid-template-columns:minmax(0,1fr)}}
+.wfb .fill{background:var(--hot)}
+.grps{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,3fr) minmax(0,6fr) minmax(0,3fr);gap:14px}
+@media (max-width:1300px){.grps{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+@media (max-width:700px){.grps{grid-template-columns:minmax(0,1fr)}}
+.grp{display:flex;flex-direction:column;gap:6px;min-width:0}
+.gh{font-size:12px;color:var(--muted);border-bottom:1px solid var(--line);padding-bottom:4px}
+.mets{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.mt{background:var(--panel2);padding:8px 10px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.mt .k{font-size:12px;color:var(--muted)}
+.mt .v{font-size:19px;font-weight:600;font-variant-numeric:tabular-nums}
+.mt .s{font-size:11.5px;color:var(--muted)}
+.risk{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+.risk li{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:10px;align-items:start;padding:8px 10px;background:var(--panel2);border-radius:0;font-size:12.5px}
+.risk li.on{outline:1px solid var(--genix)}
+.risk .rk{font-family:var(--f-data);color:var(--muted)}
+.risk .tn{font-family:var(--f-data);text-align:right;white-space:nowrap}
+.risk .tn small{display:block;color:var(--muted);font-size:11px}
+.arch{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.ly{background:var(--panel2);border-radius:0;padding:10px 12px;display:flex;flex-direction:column;gap:6px;font-size:12.5px;min-width:0}
+.ly p{margin:0;color:var(--muted)}
+.st{align-self:flex-start;font-family:var(--f-data);font-size:10.5px;padding:1px 6px;border-radius:2px;border:1px solid}
+.st.ok{color:var(--ok);border-color:var(--ok)} .st.mid{color:var(--warn);border-color:var(--warn)} .st.no{color:var(--muted);border-color:var(--muted)}
+@keyframes flow{to{stroke-dashoffset:-28}}
+.fl{fill:none;stroke-dasharray:10 4;animation:flow 1.1s linear infinite}
+.fl.off{animation:none;opacity:.25}
+.paused .fl{animation-play-state:paused}
+@media (prefers-reduced-motion:reduce){.fl{animation:none}}
+svg text{font-family:var(--f-ui)}
+svg .dv{font-family:var(--f-data);font-variant-numeric:tabular-nums}
+
+:root{--raw:#BABABA;--clk:#C88A4A;--cem:#9DB4C8;--gas:#B48CD8;--fuel:#7A7A7A;--add:#9AA66E}
+.grps{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media (max-width:1300px){.grps{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+@media (max-width:700px){.grps{grid-template-columns:minmax(0,1fr)}.mets{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+details.cfg>summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:10px}
+details.cfg>summary::-webkit-details-marker{display:none}
+details.cfg>summary .hint{font-size:12px;color:var(--muted)}
+details.cfg[open]>summary .hint::after{content:"Ocultar"} details.cfg:not([open])>summary .hint::after{content:"Mostrar"}
+.cfgg{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+.cfgg fieldset{border:1px solid var(--line);margin:0;padding:10px 12px;display:flex;flex-direction:column;gap:7px;min-width:0}
+.cfgg legend{font-size:12px;color:var(--fg);padding:0 4px}
+.cfgg label{display:grid;grid-template-columns:minmax(0,1fr) 92px 70px;gap:8px;align-items:center;font-size:12.5px;color:var(--muted)}
+.cfgg label.two{grid-template-columns:minmax(0,1fr) 78px 48px 26px}
+.cfgg label.txt{grid-template-columns:110px minmax(0,1fr)}
+.cfgg input,.eqcfg input,textarea.cfgj{font:inherit;font-size:12.5px;background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:0;padding:4px 6px;min-width:0;width:100%}
+.cfgg input[type=number]{text-align:right;font-variant-numeric:tabular-nums}
+.cfgg .u{font-size:11.5px;color:var(--dim)}
+.eqcfg{overflow-x:auto} .eqcfg table{min-width:560px} .eqcfg td{padding:4px 6px}
+textarea.cfgj{min-height:70px;resize:vertical;font-size:11.5px}
+.cfgbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.cfgmsg{font-size:12px;color:var(--ok)}
+.arch2{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:22px;position:relative}
+@media (max-width:900px){.arch2{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+@media (max-width:520px){.arch2{grid-template-columns:minmax(0,1fr)}}
+.stp{background:var(--panel2);border:1px solid var(--line);padding:10px 12px;display:flex;flex-direction:column;gap:5px;min-width:0;position:relative}
+.stp.gx{border-color:var(--genix)}
+.stp .n{font-size:11.5px;color:var(--genix)}
+.stp h3{margin:0;font-size:14px;font-weight:600}
+.stp p{margin:0;font-size:12px;color:var(--muted)}
+.stp .lv{font-size:12.5px;color:var(--fg);font-variant-numeric:tabular-nums}
+@media (min-width:901px){.stp:not(:last-child)::after{content:"";position:absolute;right:-18px;top:50%;width:14px;height:2px;background:var(--genix)}
+.stp:not(:last-child)::before{content:"";position:absolute;right:-19px;top:calc(50% - 4px);border-left:6px solid var(--genix);border-top:5px solid transparent;border-bottom:5px solid transparent}}
+.gxm{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:14px}
+@media (max-width:1100px){.gxm{grid-template-columns:minmax(0,1fr)}}
+.ad{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
+.mc{background:var(--panel2);padding:10px 12px;display:flex;flex-direction:column;gap:6px;min-width:0;border-top:2px solid var(--line)}
+.mc.al{border-top-color:var(--genix)}
+.mc .h{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.mc .h b{font-size:13px}
+.mc .ty{font-size:11px;color:var(--genix);white-space:nowrap}
+.mc .big{font-size:20px;font-weight:600;font-variant-numeric:tabular-nums}
+.mc .sm{font-size:11.5px;color:var(--muted)}
+.pb{display:grid;grid-template-columns:minmax(0,1fr) 90px 40px;gap:8px;align-items:center;font-size:12px}
+.pb .tr{height:8px;background:var(--line);position:relative}
+.pb .tr i{position:absolute;inset:0 auto 0 0;background:var(--genix)}
+.pb .vv{text-align:right;font-variant-numeric:tabular-nums;color:var(--muted)}
+.presc{background:var(--panel2);padding:10px 12px;display:grid;grid-template-columns:150px minmax(0,1fr);gap:6px 12px;font-size:12.5px;border-left:3px solid var(--genix)}
+.presc .k{color:var(--muted)}
+@media (max-width:600px){.presc{grid-template-columns:minmax(0,1fr)}}
+.adh{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;align-items:center}
+.adh .sub{font-size:12px;color:var(--muted)}
+.qs{display:flex;flex-direction:column;gap:6px}
+.qs button{font:inherit;font-size:12.5px;text-align:left;background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:0;padding:8px 10px;cursor:pointer}
+.qs button:hover,.qs button[aria-pressed="true"]{border-color:var(--genix)}
+.ans{background:#1F2742;border:1px solid #3B4F99;padding:10px 12px;font-size:13px;display:flex;flex-direction:column;gap:6px;min-height:120px}
+.ans .who{font-size:11.5px;color:var(--genix)}
+.ans .src3{font-size:11.5px;color:var(--muted)}
+table.mdl td{white-space:normal}
+.mst{display:inline-block;font-size:11px;padding:1px 6px;border:1px solid;white-space:nowrap}
+.mcnt{display:flex;flex-wrap:wrap;gap:8px 20px;font-size:12.5px;color:var(--muted)}
+.mcnt b{color:var(--fg);font-size:16px;font-variant-numeric:tabular-nums;margin-right:4px}
+.flt{display:flex;flex-wrap:wrap;gap:6px}
+</style>
+
+<div class="wrap" id="app">
+  <header class="top">
+    <div class="row"><svg class="logo" viewBox="0 0 66.16 25" role="img" aria-label="ABB"><path d="M25.5 24.5 25.5 12.5 28.66 12.5 32.9 24.5ZM24.5 24.5 24.5 12.5 21.34 12.5 17.1 24.5ZM25.5 25.5 25.5 32.5 29.42 32.5 31.18 37.5 37.5 37.5 33.26 25.5ZM24.5 25.5 16.74 25.5 12.5 37.5 18.81 37.5 20.58 32.5 24.5 32.5ZM47.5 12.5 39.5 12.5 39.5 24.5 47.5 24.5ZM56 24.5C55.1623 23.4091 54.0612 22.5489 52.8 22 55.1306 20.2383 55.5918 16.9207 53.8301 14.5901 52.8281 13.2646 51.2616 12.4868 49.6 12.49L48.5 12.49 48.5 24.49ZM39.54 25.5 39.54 37.5 47.54 37.5 47.54 25.5ZM56.66 25.5 48.5 25.5 48.5 37.5 49.6 37.5C54.0569 37.4945 57.6655 33.8769 57.66 29.42 57.6558 28.0457 57.2976 26.6957 56.62 25.5ZM68.54 12.5 60.54 12.5 60.54 24.5 68.54 24.5ZM77 24.5C76.1623 23.4091 75.0612 22.5489 73.8 22 76.1307 20.2383 76.5918 16.9207 74.8301 14.5901 73.8281 13.2646 72.2616 12.4868 70.6 12.49L69.5 12.49 69.5 24.49ZM60.54 25.5 60.54 37.5 68.54 37.5 68.54 25.5ZM77.66 25.5 69.5 25.5 69.5 37.5 70.6 37.5C75.0569 37.4945 78.6655 33.8769 78.66 29.42 78.6558 28.0457 78.2976 26.6957 77.62 25.5Z" fill="#FF000F" transform="translate(-12.5 -12.5)"/></svg><div class="brand">
+      <span class="eyebrow">Genix APM</span>
+      <h1>Coordinador de Planta</h1>
+      <p id="subT">Proceso y mantenimiento de la planta completa, desde la cantera hasta el despacho.</p>
+    </div></div>
+    <div class="row"><span class="src" id="src">MODO SIMULACIÓN</span></div>
+  </header>
+
+  <section class="controls" aria-label="Escenarios y reproducción">
+    <div class="row"><label class="meta" for="scSel">Escenario<select id="scSel" class="sel"></select></label><p class="desc" id="desc"></p></div>
+    <div class="row">
+      <div class="seg" role="group" aria-label="Modo">
+        <button id="mCon" aria-pressed="true">Con acción recomendada</button>
+        <button id="mSin" class="sin" aria-pressed="false">Sin intervención</button>
+      </div>
+      <button class="btn" id="play">Reproducir</button>
+      <div class="seg" role="group" aria-label="Velocidad">
+        <button id="v1" aria-pressed="true">x1</button><button id="v2" aria-pressed="false">x4</button><button id="v3" aria-pressed="false">x16</button>
+      </div>
+      <label class="meta" for="meta">Meta clínker <span class="mono" id="metaV">160 t/h</span><input type="range" id="meta" min="100" max="220" step="2" value="160"></label>
+      <label class="meta" for="fc">Factor clínker <span class="mono" id="fcV">0,78</span><input type="range" id="fc" min="0.65" max="0.90" step="0.01" value="0.78"></label>
+      <div class="scrub"><input type="range" id="scrub" min="0" max="1000" value="0" aria-label="Tiempo"><span class="clock" id="clock">0,0 h</span></div>
+    </div>
+  </section>
+
+  <details class="panel cfg" id="cfgP">
+    <summary><h2>Ajustes de planta, capacidades, silos y equipos</h2><span class="hint"></span></summary>
+    <p class="note">Ajusta capacidades, silos, parámetros de proceso y el nombre y tag de cada equipo. Todo el coordinador se recalcula con estos valores y quedan guardados en este navegador.</p>
+    <div class="cfgg" id="cfgG"></div>
+    <div class="eqcfg"><table><thead><tr><th>Etapa</th><th>Nombre en pantalla</th><th>Tag o descripción</th></tr></thead><tbody id="cfgE"></tbody></table></div>
+    <div class="cfgbar">
+      <button class="btn" id="cfgReset">Restablecer valores</button>
+      <button class="btn" id="cfgCopy">Copiar configuración</button>
+      <span class="cfgmsg" id="cfgMsg"></span>
+    </div>
+    <label class="meta" for="cfgJ" style="flex-direction:column;align-items:stretch">Pegar configuración de otra planta<textarea id="cfgJ" class="cfgj" placeholder="Pega aquí la configuración copiada y presiona Aplicar"></textarea></label>
+    <div class="cfgbar"><button class="btn" id="cfgApply">Aplicar</button></div>
+  </details>
+
+  <section class="kpis" aria-label="Indicadores">
+    <div class="kpi"><span class="k">Clínker ahora</span><span class="v" id="kR">0</span><span class="s" id="kRs"></span></div>
+    <div class="kpi"><span class="k">Promedio del período</span><span class="v" id="kAvg">0</span><span class="s" id="kAvgs"></span></div>
+    <div class="kpi"><span class="k">Clínker bajo meta</span><span class="v" id="kLost">0</span><span class="s" id="kLosts"></span></div>
+    <div class="kpi"><span class="k">Restricción activa</span><span class="v" id="kBind" style="font-size:17px">Meta</span><span class="s" id="kBinds"></span></div>
+    <div class="kpi"><span class="k">Equipos en alerta</span><span class="v" id="kGx">0</span><span class="s" id="kGxs"></span></div>
+    <div class="kpi"><span class="k">Tiempo para actuar</span><span class="v" id="kLead">0</span><span class="s" id="kLeads"></span></div>
+  </section>
+
+  <section class="panel" aria-label="Cómo trabaja Genix">
+    <h2>Cómo trabaja Genix en esta planta</h2>
+    <div class="arch2">
+      <div class="stp"><span class="n">1 Datos</span><h3>Señales de planta</h3><p>DCS e historiador, analizadores en línea, laboratorio cada 2 h y órdenes de mantenimiento del ERP.</p><span class="lv" id="aD"></span></div>
+      <div class="stp gx"><span class="n">2 Modelos</span><h3>Modelos analíticos y de IA</h3><p>Modos de falla, vida remanente, sensores virtuales, pronósticos, detección de anomalías y optimización.</p><span class="lv" id="aM"></span></div>
+      <div class="stp gx"><span class="n">3 Coordinación</span><h3>Gemelo de proceso</h3><p>Simula la planta cada 5 min con y sin acción, ubica la restricción y calcula las toneladas en riesgo de cada alerta.</p><span class="lv" id="aC"></span></div>
+      <div class="stp"><span class="n">4 Acción</span><h3>Decisión y ejecución</h3><p>Recomendación prescriptiva, aviso automático al ERP y respuesta a preguntas en lenguaje natural.</p><span class="lv" id="aA"></span></div>
+    </div>
+  </section>
+
+  <section class="main">
+    <div class="panel">
+      <h2>Planta completa <b id="fsT"></b></h2>
+      <div class="flowbox" id="flowbox"></div>
+      <div class="legend">
+        <span><i style="background:var(--raw)"></i>Caliza y crudo</span>
+        <span><i style="background:var(--clk)"></i>Clínker</span>
+        <span><i style="background:var(--add)"></i>Yeso y adiciones</span>
+        <span><i style="background:var(--cem)"></i>Cemento</span>
+        <span><i style="background:var(--gas)"></i>Gases</span>
+        <span><i style="background:var(--fuel)"></i>Combustible</span>
+        <span><i style="background:var(--ok)"></i>Salud 85 a 100</span>
+        <span><i style="background:var(--warn)"></i>50 a 85</span>
+        <span><i style="background:var(--hot)"></i>20 a 50</span>
+        <span><i style="background:var(--crit)"></i>Bajo 20</span>
+      </div>
+    </div>
+    <div class="side">
+      <div class="panel">
+        <h2>Capacidad sostenible por etapa, t/h de clínker</h2>
+        <div class="bars" id="bars"></div>
+        <p class="note" id="buf"></p>
+      </div>
+      <div class="panel">
+        <h2>Producción de clínker y proyección</h2>
+        <div class="chart" id="chart"></div>
+        <div class="legend">
+          <span><i style="background:var(--genix)"></i>Con acción recomendada</span>
+          <span><i style="background:var(--muted)"></i>Sin intervención</span>
+          <span><i style="background:var(--brand)"></i>Meta</span>
+          <span>▲ alerta</span><span style="color:var(--crit)">■ falla si no se interviene</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="gxm">
+    <div class="panel">
+      <div class="adh"><h2>Modelos sobre el activo <b id="adT"></b></h2><span class="sub" id="adS"></span></div>
+      <div class="ad" id="adC"></div>
+      <div class="presc" id="adP"></div>
+    </div>
+    <div class="panel">
+      <h2>Pregunta a Genix</h2>
+      <div class="qs" id="qs"></div>
+      <div class="ans" id="ans"></div>
+    </div>
+  </section>
+
+  <section class="panel" aria-label="Modelos en ejecución">
+    <div class="adh"><h2>Modelos Genix en ejecución</h2><div class="mcnt" id="mCnt"></div></div>
+    <div class="flt" id="mFlt"></div>
+    <div class="tbl" style="max-height:560px;overflow:auto"><table class="mdl">
+      <thead><tr><th>Modelo</th><th>Tipo</th><th>Activo</th><th>Variables de entrada</th><th>Resultado ahora</th><th>Desempeño</th><th>Frecuencia</th><th>Estado</th></tr></thead>
+      <tbody id="mT"></tbody>
+    </table></div>
+  </section>
+
+  <section class="panel" aria-label="KPI de proceso">
+    <h2>KPI de proceso</h2>
+    <div class="grps" id="met"></div>
+    <div class="row" style="align-items:flex-start;gap:14px">
+      <div class="chart" id="calc" style="flex:2 1 420px;min-width:0"></div>
+      <div style="flex:1 1 260px;display:flex;flex-wrap:wrap;gap:6px;align-content:flex-start" id="anz"></div>
+    </div>
+  </section>
+
+  <section class="tri">
+    <div class="panel">
+      <h2>Por qué no estamos en <b id="wfMeta">160</b> t/h</h2>
+      <div class="bars" id="wf"></div>
+      <p class="note" id="wfN"></p>
+    </div>
+    <div class="panel">
+      <h2>Alertas por toneladas en riesgo</h2>
+      <ol class="risk" id="risk"></ol>
+      <p class="note">Producción que se pierde si la alerta no se atiende. Prioriza la intervención por impacto en clínker y cemento.</p>
+    </div>
+    <div class="panel">
+      <h2>Optimizador de factor clínker</h2>
+      <div class="chart" id="opt"></div>
+      <p class="note" id="optN"></p>
+    </div>
+  </section>
+
+  <section class="panel" aria-label="Avisos de mantenimiento">
+    <h2>Avisos de mantenimiento enviados al ERP</h2>
+    <div class="tbl"><table class="noti"><thead id="notiH"></thead><tbody id="notiB"></tbody></table></div>
+  </section>
+
+  <section class="lower">
+    <div class="panel">
+      <h2>Bitácora y recomendaciones <b id="logMode"></b></h2>
+      <ul class="log" id="log"></ul>
+    </div>
+    <div class="panel">
+      <h2>Estado de equipos críticos</h2>
+      <div class="tbl"><table class="eq">
+        <thead><tr><th>Área</th><th>Equipos</th><th>Salud</th><th>Diagnóstico</th><th>Modelo</th><th>Acción</th></tr></thead>
+        <tbody id="eqT"></tbody>
+      </table></div>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const fmt=(v,d=0)=>Number(v).toLocaleString('es-CL',{minimumFractionDigits:d,maximumFractionDigits:d});
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+
+/* ---------- Configuración de planta (ajustable) ---------- */
+const DEF={
+ planta:'Planta de cemento',linea:'Línea de horno 1',
+ cap:{cantera:500,chan:420,prehomo:340,crudo:300,precal:178,horno:175,tiro:170,filtro:182,enfriador:180,comb:185,aditivos:120,cem1:115,cem2:115,despacho:210},
+ proc:{fcr:1.6,ramp:30,rmin:45,tc0:760,flow0:140,meta:160,fc:0.78},
+ buf:{prehomo:[50000,60],silocrudo:[12000,46],siloclk:[40000,50],silocem:[16000,50]},
+ nd:{cantera:['Cantera','Caliza y arcilla'],chan:['Chancado','211-CR-001'],prehomo:['Prehomogeneización','221-ST-001 y RC-001'],crudo:['Molino de crudo','331-RM-001'],
+   silocrudo:['Silo de crudo','361-SI-001'],precal:['Precalentador','421-CY-01 a 05'],tiro:['Ventilador de tiro','441-FN-001'],horno:['Horno rotatorio','431-KL-001'],
+   filtro:['Filtro de mangas','471-BF-001'],enfriador:['Enfriador de clínker','451-CL-001'],siloclk:['Silo de clínker','481-SI-001'],aditivos:['Yeso y adiciones','511-BN-001 a 003'],
+   cem1:['Molino de cemento 1','531-BM-001'],cem2:['Molino de cemento 2','532-BM-001'],silocem:['Silos de cemento','561-SI-001 a 004'],despacho:['Despacho','611-PK-001 y granel'],
+   comb:['Combustibles','391-CM-001 y alternos']}
+};
+const KEY='genix.coordinador.cemento.v1';
+const clone=o=>JSON.parse(JSON.stringify(o));
+function merge(a,b){ if(!b||typeof b!=='object')return a; for(const k in a){ if(b[k]===undefined)continue; if(Array.isArray(a[k])){ if(Array.isArray(b[k])) a[k]=b[k].slice(0,a[k].length).map((v,i)=>typeof a[k][i]==='number'?(+v||0):String(v)); } else if(typeof a[k]==='object') merge(a[k],b[k]); else a[k]=typeof a[k]==='number'?(isFinite(+b[k])?+b[k]:a[k]):String(b[k]); } return a; }
+let CFG=clone(DEF);
+try{ const s=localStorage.getItem(KEY); if(s) CFG=merge(clone(DEF),JSON.parse(s)); }catch(e){}
+function save(){ try{ localStorage.setItem(KEY,JSON.stringify(CFG)); }catch(e){} }
+let ND={};
+const POS={cantera:[10,20],chan:[160,20],prehomo:[310,20],crudo:[460,20],silocrudo:[610,20],precal:[760,20],tiro:[910,20],
+  aditivos:[310,190],siloclk:[460,190],enfriador:[610,190],horno:[760,190],filtro:[910,190],
+  despacho:[10,360],silocem:[160,360],cem2:[310,360],cem1:[460,360],comb:[760,360]};
+const NODES=Object.keys(POS);
+function buildND(){ ND={}; for(const n of NODES) ND[n]={x:POS[n][0],y:POS[n][1],t:CFG.nd[n][0],g:CFG.nd[n][1]}; }
+buildND();
+const txt=s=>String(s||'').replace(/\{(\w+)\}/g,(m,k)=>ND[k]?ND[k].g:m);
+
+/* ---------- Escenarios ---------- */
+const E=(t,mode,node,kind,model,text,act)=>({t,mode,node,kind,model,text,act});
+const SC=[];
+SC.push({id:'base',name:'Operación continua',H:72,
+ desc:'Sin eventos. Muestra qué etapa limita la meta de clínker. Sube la meta y observa qué etapa pasa a ser la restricción. Con los valores de fábrica el ventilador de tiro limita sobre 170 t/h.',
+ mods:[],health:{},x:{},events:[E(0,'both','horno','info','','Planta estable. El coordinador calcula holgura por etapa y nivel de silos cada 5 min.')]});
+
+SC.push({id:'tiro',name:'Desbalance en ventilador de tiro',H:72,
+ desc:'Se acumula material en el rodete del ventilador de tiro y la vibración sube. Sin aviso el ventilador dispara por alta vibración y el horno se detiene. Con la alerta la limpieza del rodete se hace en línea, con una baja de carga corta.',
+ mods:[{n:'tiro',t0:34,t1:40,f:0,m:'sin'},{n:'tiro',t0:20,t1:22,f:0.75,m:'con'}],
+ health:{tiro:{sin:[[0,92],[8,82],[20,58],[30,30],[34,5],[40,5],[40.2,88],[72,90]],con:[[0,92],[8,82],[12,70],[20,62],[22,93],[72,94]]}},x:{},
+ events:[E(12,'con','tiro','alert','EFM vibración','Vibración 1x del ventilador {tiro} sube 40 % en 8 h con fase estable. Patrón de desbalance por acumulación de material en el rodete.','Limpieza en línea del rodete en 8 h, con el horno al 75 % por 2 h.'),
+  E(20,'con','tiro','action','','Limpieza en línea del rodete, 2 h con horno al 75 %. La vibración vuelve a su referencia.'),
+  E(34,'sin','tiro','fail','','Disparo de {tiro} por alta vibración. Horno detenido 6 h y partida con rampa.')]});
+
+SC.push({id:'aire',name:'Infiltraciones de aire falso',H:72,
+ desc:'Juntas y compuertas del precalentador dejan entrar aire falso. El ventilador de tiro mueve más gas sin aportar producción y sube el consumo térmico. Sin aviso la pérdida pasa inadvertida y el horno queda limitado por tiro. Con la alerta el balance de gases ubica la etapa con infiltración.',
+ mods:[{n:'tiro',t0:4,t1:40,f:[1,0.85],m:'sin'},{n:'tiro',t0:40,t1:72,f:0.85,m:'sin'},{n:'tiro',t0:4,t1:14,f:[1,0.93],m:'con'},{n:'tiro',t0:14,t1:18,f:0.93,m:'con'}],
+ health:{precal:{sin:[[0,92],[4,90],[40,55],[72,52]],con:[[0,92],[4,90],[14,72],[18,93],[72,93]]}},
+ x:{tc:{sin:[[0,0],[4,0],[40,35],[72,35]],con:[[0,0],[4,0],[14,12],[18,0],[72,0]]},air:{sin:[[0,0],[4,0],[40,0.15],[72,0.15]],con:[[0,0],[4,0],[14,0.07],[18,0],[72,0]]}},
+ events:[E(10,'con','precal','alert','Balance de gases','O2 a la salida del precalentador 1,1 puntos sobre la entrada del horno y caudal del ventilador de tiro 7 % sobre lo esperado para la alimentación actual. Infiltración entre ciclones 3 y 4.','Revisar y sellar compuertas pendulares y juntas de los ciclones 3 y 4 durante el turno.'),
+  E(14,'con','precal','action','','Sellado de compuertas y juntas en 4 h sin detener el horno. Caudal de gas y consumo térmico vuelven a su referencia.'),
+  E(40,'sin','precal','info','','Infiltración sin detectar. Horno limitado por capacidad de tiro y consumo térmico 35 kcal/kg sobre la referencia.')]});
+
+SC.push({id:'ciclon',name:'Atollo en ciclón del precalentador',H:48,
+ desc:'Material pegado en el cono de un ciclón del precalentador. Sin aviso el ciclón se atolla, el horno se detiene para limpiar y parte con rampa. Con la alerta la limpieza con cañones de aire se hace con una baja de alimentación corta.',
+ mods:[{n:'precal',t0:22,t1:29,f:0,m:'sin'},{n:'precal',t0:18.5,t1:20,f:0.7,m:'con'}],
+ health:{precal:{sin:[[0,92],[10,80],[18,52],[22,5],[29,5],[29.2,88],[48,90]],con:[[0,92],[10,80],[16,60],[18.5,55],[20,93],[48,93]]}},
+ x:{cal:{sin:[[0,0],[14,0.3],[22,0.6],[29,0.6],[34,0.3],[38,0],[48,0]],con:[[0,0],[14,0.3],[20,0],[48,0]]}},
+ events:[E(16,'con','precal','alert','Time series + Rule-based','Presión en el cono del ciclón 4 con caídas repetidas y temperatura de salida 18 °C bajo su patrón. Acumulación de material, atollo probable en 6 h.','Limpieza con cañones de aire y varillado en 2 h, con alimentación al 70 % por 1,5 h.'),
+  E(18.5,'con','precal','action','','Limpieza del ciclón 4 con alimentación al 70 %, 1,5 h.'),
+  E(22,'sin','precal','fail','','Atollo del ciclón 4. Horno detenido 7 h para limpieza y partida con rampa.')]});
+
+SC.push({id:'crudo',name:'Rodamiento de rodillo en molino de crudo',H:72,
+ desc:'Degradación del rodamiento de un rodillo del molino vertical de crudo. Sin aviso falla, el molino se detiene 36 h, el silo de crudo se vacía y el horno se detiene. Con la alerta el silo se llena antes y el cambio se hace planificado.',
+ mods:[{n:'crudo',t0:30,t1:66,f:0,m:'sin'},{n:'crudo',t0:26,t1:42,f:0,m:'con'}],
+ health:{crudo:{sin:[[0,90],[8,74],[20,50],[28,25],[30,5],[66,5],[66.2,92],[72,92]],con:[[0,90],[8,74],[20,50],[26,42],[42,95],[72,95]]}},x:{},
+ events:[E(8,'con','crudo','alert','RUL + EFM','Vibración y temperatura del rodamiento del rodillo 2 de {crudo} en tendencia. RUL estimada 22 h, modo de falla rodamiento.','Operar el molino a capacidad máxima para llenar el silo de crudo y programar el cambio de rodamiento en 18 h con repuesto en terreno.'),
+  E(26,'con','crudo','action','','Cambio planificado de rodamiento, 16 h. El silo de crudo sostiene el horno sin bajar producción.'),
+  E(30,'sin','crudo','fail','','Falla del rodamiento del rodillo 2. Molino de crudo detenido 36 h.')]});
+
+SC.push({id:'enfr',name:'Placas del enfriador de clínker',H:72,
+ desc:'Placas dañadas en la parrilla del enfriador. Sin aviso cae la eficiencia de enfriamiento, el clínker sale caliente y el horno baja al 60 %. Con la alerta el cambio de placas se programa con una baja de carga menor.',
+ mods:[{n:'enfriador',t0:40,t1:54,f:0.6,m:'sin'},{n:'enfriador',t0:28,t1:32,f:0.8,m:'con'}],
+ health:{enfriador:{sin:[[0,90],[12,70],[28,45],[40,10],[54,10],[54.2,90],[72,92]],con:[[0,90],[12,70],[16,62],[28,55],[32,94],[72,94]]}},
+ x:{tclk:{sin:[[0,0],[20,15],[40,90],[54,90],[56,0],[72,0]],con:[[0,0],[16,10],[28,20],[32,0],[72,0]]}},
+ events:[E(16,'con','enfriador','alert','EFM','Temperatura bajo la parrilla de la cámara 3 de {enfriador} sube y la presión de la cámara cae a igual caudal de aire. Placas dañadas o desplazadas.','Programar inspección y cambio de placas en 12 h, con el horno al 80 % por 4 h.'),
+  E(28,'con','enfriador','action','','Cambio de placas en la cámara 3, horno al 80 % por 4 h.'),
+  E(40,'sin','enfriador','fail','','Clínker a la salida sobre 200 °C y daño en la parrilla. Horno al 60 % por 14 h.')]});
+
+SC.push({id:'cem',name:'Reductor de molino de cemento',H:72,
+ desc:'Desgaste en el reductor del molino de cemento 1. Sin aviso el reductor falla, el molino se detiene 30 h y baja la producción de cemento. Con la alerta el cambio de rodamiento se programa en un turno y el silo de clínker absorbe la diferencia.',
+ mods:[{n:'cem1',t0:30,t1:60,f:0,m:'sin'},{n:'cem1',t0:20,t1:26,f:0,m:'con'}],
+ health:{cem1:{sin:[[0,90],[6,76],[18,52],[28,26],[30,5],[60,5],[60.2,92],[72,92]],con:[[0,90],[6,76],[12,64],[20,55],[26,95],[72,95]]}},x:{},
+ events:[E(6,'con','cem1','alert','EFM + análisis de aceite','Vibración en frecuencia de engrane del reductor de {cem1} en tendencia y temperatura de aceite 6 °C sobre la referencia.','Programar cambio de rodamiento del eje intermedio en 14 h, en ventana de baja demanda.'),
+  E(20,'con','cem1','action','','Cambio planificado de rodamiento del reductor, 6 h.'),
+  E(30,'sin','cem1','fail','','Falla del reductor de {cem1}. Molino de cemento 1 detenido 30 h.')]});
+
+SC.push({id:'filtro',name:'Diferencial de presión en filtro de mangas',H:72,
+ desc:'Las mangas del filtro del horno se colmatan y el diferencial de presión sube. Sin aviso el filtro restringe el gas, el ventilador de tiro no alcanza y el horno baja, con riesgo en emisiones. Con la alerta se ajusta la limpieza por pulsos y se cambian mangas por compartimento sin detener el horno.',
+ mods:[{n:'filtro',t0:24,t1:60,f:[1,0.82],m:'sin'},{n:'filtro',t0:60,t1:66,f:0.6,m:'sin'},{n:'filtro',t0:12,t1:16,f:0.95,m:'con'}],
+ health:{filtro:{sin:[[0,90],[8,74],[24,55],[48,30],[60,15],[66,90],[72,92]],con:[[0,90],[8,74],[12,68],[16,93],[72,93]]}},
+ x:{dp:{sin:[[0,0],[8,3],[24,6],[60,14],[66,0],[72,0]],con:[[0,0],[8,3],[12,4],[16,0],[72,0]]},polvo:{sin:[[0,0],[24,4],[48,18],[60,25],[66,0],[72,0]],con:[[0,0],[72,0]]}},
+ events:[E(8,'con','filtro','alert','Time series + Rule-based','Diferencial de presión de {filtro} sube 3 mbar en 8 h con ciclo de limpieza normal. Mangas colmatadas en compartimentos 2 y 5.','Ajustar presión y frecuencia de pulsos y cambiar mangas de los compartimentos 2 y 5 en 4 h, aislándolos de a uno.'),
+  E(12,'con','filtro','action','','Cambio de mangas por compartimento, horno con baja menor por 4 h.'),
+  E(24,'sin','filtro','info','','Diferencial de presión del filtro sobre el límite. El ventilador de tiro no alcanza el caudal.'),
+  E(60,'sin','filtro','fail','','Emisión de polvo sobre el límite. Cambio de mangas con horno al 60 % por 6 h.')]});
+
+SC.push({id:'refr',name:'Punto caliente en la carcasa del horno',H:720,
+ desc:'Horizonte de 30 días. El escáner de carcasa muestra una zona que se calienta por desgaste del refractario. Sin aviso el refractario cae y el horno se detiene 5 días. Con la alerta se ajusta la llama, se opera al 95 % y la reparación se hace en una parada corta coordinada con el stock de clínker.',
+ mods:[{n:'horno',t0:432,t1:552,f:0,m:'sin'},{n:'meta',t0:72,t1:288,f:0.95,m:'con'},{n:'horno',t0:288,t1:336,f:0,m:'con'}],
+ health:{horno:{sin:[[0,88],[72,72],[240,45],[400,22],[432,5],[552,5],[553,92],[720,93]],con:[[0,88],[48,74],[72,72],[288,66],[336,94],[720,95]]}},x:{},
+ events:[E(48,'con','horno','alert','Time series + escáner de carcasa','Temperatura de carcasa entre 22 y 26 m sube 4 °C por día y alcanza 330 °C. Desgaste de refractario, pronóstico de 380 °C en 16 días.','Ajustar la llama y el ventilador de carcasa, operar al 95 % y planificar el cambio del tramo de refractario en 10 días con stock de clínker alto.'),
+  E(72,'con','horno','action','','Llama ajustada y horno al 95 %. Repuesto y cuadrilla de refractario programados.'),
+  E(288,'con','horno','action','','Parada planificada de 2 días para cambio del tramo de refractario.'),
+  E(432,'sin','horno','fail','','Caída de refractario y punto caliente en la carcasa. Horno detenido 5 días.')]});
+
+function shift(sc,d){
+  const sh=o=>Object.fromEntries(Object.entries(o).map(([k,v])=>[k,Object.fromEntries(Object.entries(v).map(([m,p])=>[m,p.map(q=>[q[0]+d,q[1]])]))]));
+  return {mods:sc.mods.map(m=>({...m,t0:m.t0+d,t1:m.t1+d})),health:sh(sc.health),x:sh(sc.x),events:sc.events.map(e=>({...e,t:e.t+d}))};
+}
+(function(){
+  const find=id=>SC.find(s=>s.id===id);
+  const a=shift(find('tiro'),10),b=shift(find('crudo'),52),c=shift(find('cem'),96);
+  const H=168,ext=h=>Object.fromEntries(Object.entries(h).map(([k,v])=>[k,Object.fromEntries(Object.entries(v).map(([m,p])=>[m,[[0,p[0][1]],...p,[H,p[p.length-1][1]]]]))]));
+  SC.unshift({id:'week',name:'Semana típica',H,
+   desc:'Una semana con tres eventos en distintas áreas: desbalance del ventilador de tiro, rodamiento del molino de crudo y reductor del molino de cemento. El coordinador muestra cómo cada falla aguas arriba o aguas abajo termina en el clínker y el cemento.',
+   mods:[...a.mods,...b.mods,...c.mods],health:{...ext(a.health),...ext(b.health),...ext(c.health)},x:{},
+   events:[...a.events,...b.events,...c.events,
+    E(140.5,'both','horno','alert','Rule-based calidad de dato','El analizador de gases a la entrada del horno entrega el mismo valor hace 30 min. Se reemplaza por sensor virtual de O2 y CO mientras se revisa.','Revisar sonda y sistema de limpieza del analizador de gases.'),
+    E(152,'both','horno','action','','Analizador de gases en servicio. El sensor virtual vuelve a respaldo.')]});
+})();
+
+/* ---------- Motor ---------- */
+function lerpPts(pts,t){ if(t<=pts[0][0])return pts[0][1]; for(let i=1;i<pts.length;i++){ if(t<=pts[i][0]){const [a,va]=pts[i-1],[b,vb]=pts[i];return b===a?vb:va+(vb-va)*(t-a)/(b-a);} } return pts[pts.length-1][1]; }
+function factor(sc,n,t,mode){ let f=1; for(const m of sc.mods){ if(m.n!==n||(m.m!=='both'&&m.m!==mode))continue; if(t>=m.t0&&t<m.t1){ f*=Array.isArray(m.f)?m.f[0]+(m.f[1]-m.f[0])*(t-m.t0)/(m.t1-m.t0):m.f; } } return f; }
+function xv(sc,k,t,mode){ const h=sc.x&&sc.x[k]; if(!h)return 0; const p=h[mode]||h.both; return p?lerpPts(p,t):0; }
+let LIVE=null, cur=SC[0], mode='con', sims={}, idx=0, playing=false, speed=1, last=0;
+function health(sc,n,t,m){ const h=sc.health[n]; if(h){const p=h[m]||h.both; if(p)return lerpPts(p,t);} if(LIVE&&LIVE.health&&LIVE.health[n]!=null) return +LIVE.health[n]; return 93+2*Math.sin(t/7+n.length); }
+function simulate(sc,m){
+  const H=sc.H, dt=H<=200?1/12:0.5, N=Math.round(H/dt), C=CFG.cap, P=CFG.proc, B=CFG.buf, FC=P.fc, fcr=P.fcr, meta=P.meta;
+  const cp={pre:Math.max(1,B.prehomo[0]),cru:Math.max(1,B.silocrudo[0]),clk:Math.max(1,B.siloclk[0]),cem:Math.max(1,B.silocem[0])};
+  const L0=LIVE||{};
+  let Sp=cp.pre*B.prehomo[1]/100, Sc=L0.Sc!=null?L0.Sc*cp.cru:cp.cru*B.silocrudo[1]/100, Sk=L0.Sk!=null?L0.Sk*cp.clk:cp.clk*B.siloclk[1]/100, Se=L0.Se!=null?L0.Se*cp.cem:cp.cem*B.silocem[1]/100;
+  let R=L0.R!=null?L0.R:meta;
+  const out=[];
+  for(let i=0;i<=N;i++){
+    const t=i*dt, f=n=>factor(sc,n,t,m), c={};
+    for(const k in C) c[k]=Math.max(0,C[k]*f(k));
+    c.horno*=1+0.012*Math.sin(t/4.1)+0.008*Math.sin(t/1.3+2);
+    const F=Math.min(c.cantera,c.chan);
+    const feed=Sp>1?c.prehomo:Math.min(c.prehomo,F);
+    let rm=Math.min(c.crudo,feed); if(Sc>=cp.cru-1) rm=Math.min(rm,R*fcr);
+    const Fe=Sp>=cp.pre-1?Math.min(F,rm):F;
+    const addL=c.aditivos/Math.max(0.01,1-FC);
+    let Cm0=Math.min(c.cem1+c.cem2,addL); if(Se>=cp.cem-1) Cm0=Math.min(Cm0,c.despacho);
+    const lim=[['Meta',meta*f('meta')],['Horno',c.horno],['Precalentador',c.precal],['Ventilador de tiro',c.tiro],['Filtro de mangas',c.filtro],['Enfriador',c.enfriador],['Combustibles',c.comb]];
+    if(Sc<=1) lim.push(['Crudo, silo vacío',rm/fcr]);
+    if(Sk>=cp.clk-1) lim.push(['Silo de clínker lleno',Cm0*FC]);
+    let bind=lim[0]; for(const x of lim) if(x[1]<bind[1]-0.3) bind=x;
+    const Rl=Math.max(0,bind[1]); let bindName=bind[0];
+    if(R+P.ramp*dt<Rl-0.5){ R=R+P.ramp*dt; bindName='Partida y rampa del horno'; } else R=Rl;
+    let Cm=Cm0; if(Sk<=1) Cm=Math.min(Cm,R/FC);
+    const ct=c.cem1+c.cem2, cm1=ct>0?Cm*c.cem1/ct:0, cm2=ct>0?Cm*c.cem2/ct:0;
+    const Dsp=Se>1?c.despacho:Math.min(c.despacho,Cm);
+    const nSp=Fe-rm, nSc=rm-R*fcr, nSk=R-Cm*FC, nSe=Cm-Dsp;
+    Sp=clamp(Sp+nSp*dt,0,cp.pre); Sc=clamp(Sc+nSc*dt,0,cp.cru); Sk=clamp(Sk+nSk*dt,0,cp.clk); Se=clamp(Se+nSe*dt,0,cp.cem);
+    const caps=[['Chancado',F/fcr],['Molino de crudo',Math.min(c.crudo,c.prehomo)/fcr],['Precalentador',c.precal],['Horno',c.horno],['Ventilador de tiro',c.tiro],['Filtro de mangas',c.filtro],['Enfriador',c.enfriador],['Combustibles',c.comb],['Molienda de cemento',Math.min(ct,addL)*FC]];
+    const tte=[];
+    if(nSc<-1) tte.push(['Silo de crudo se vacía',Sc/-nSc]);
+    if(nSk<-1) tte.push(['Silo de clínker se vacía',Sk/-nSk]); else if(nSk>1) tte.push(['Silo de clínker se llena',(cp.clk-Sk)/nSk]);
+    if(nSe<-1) tte.push(['Silos de cemento se vacían',Se/-nSe]);
+    if(nSp<-1) tte.push(['Cancha de prehomogeneización se vacía',Sp/-nSp]);
+    const hl={}; for(const n of NODES) hl[n]=health(sc,n,t,m);
+    let cause=null; if(R<meta-0.5){ cause=bindName==='Meta'?'Meta reducida por coordinación':bindName; }
+    out.push({t,R,F,Fe,rm,Cm,cm1,cm2,Dsp,Sp,Sc,Sk,Se,caps,bind:bindName,tte,hl,cause,c});
+  }
+  return {dt,N,out,cp};
+}
+
+/* ---------- Flowsheet ---------- */
+const W=128,Hn=86;
+const LINES=[
+ {k:'raw',p:[[138,63],[160,63]],v:o=>o.F},{k:'raw',p:[[288,63],[310,63]],v:o=>o.Fe},{k:'raw',p:[[438,63],[460,63]],v:o=>o.rm},
+ {k:'raw',p:[[588,63],[610,63]],v:o=>o.rm},{k:'raw',p:[[738,63],[760,63]],v:o=>o.R*CFG.proc.fcr},{k:'raw',p:[[824,106],[824,190]],v:o=>o.R*CFG.proc.fcr},
+ {k:'gas',p:[[888,63],[910,63]],v:o=>o.R},{k:'gas',p:[[974,106],[974,190]],v:o=>o.R},{k:'gas',p:[[974,276],[974,324]],v:o=>o.R},
+ {k:'clk',p:[[760,233],[738,233]],v:o=>o.R},{k:'clk',p:[[610,233],[588,233]],v:o=>o.R},
+ {k:'fuel',p:[[824,360],[824,276]],v:o=>o.R},
+ {k:'clk',p:[[520,276],[520,360]],v:o=>o.cm1*CFG.proc.fc},{k:'clk',p:[[490,276],[490,300],[420,300],[420,360]],v:o=>o.cm2*CFG.proc.fc},
+ {k:'add',p:[[350,276],[350,360]],v:o=>o.cm2*(1-CFG.proc.fc)*2.5},{k:'add',p:[[395,276],[395,288],[480,288],[480,360]],v:o=>o.cm1*(1-CFG.proc.fc)*2.5},
+ {k:'cem',p:[[310,403],[288,403]],v:o=>o.cm2},{k:'cem',p:[[524,446],[524,464],[224,464],[224,446]],v:o=>o.cm1},{k:'cem',p:[[160,403],[138,403]],v:o=>o.Dsp}
+];
+const COL={raw:'var(--raw)',clk:'var(--clk)',cem:'var(--cem)',gas:'var(--gas)',fuel:'var(--fuel)',add:'var(--add)'};
+const NS='http://www.w3.org/2000/svg';
+function el(tag,attrs,parent,text){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(text!==undefined)e.textContent=text;if(parent)parent.appendChild(e);return e;}
+const band=h=>h>=85?'var(--ok)':h>=50?'var(--warn)':h>=20?'var(--hot)':'var(--crit)';
+const svg=el('svg',{viewBox:'0 -14 1050 490',role:'img','aria-label':'Flowsheet de la planta de cemento'});
+$('flowbox').appendChild(svg);
+el('text',{x:982,y:320,fill:'var(--muted)','font-size':10},svg,'Chimenea');
+el('text',{x:832,y:322,fill:'var(--muted)','font-size':10},svg,'Quemador principal');
+const defs=el('defs',{},svg);
+for(const k in COL){ const mk=el('marker',{id:'ar-'+k,viewBox:'0 0 10 10',refX:9,refY:5,markerWidth:11,markerHeight:11,markerUnits:'userSpaceOnUse',orient:'auto'},defs); el('path',{d:'M0,0 L10,5 L0,10 Z',fill:COL[k]},mk); }
+const lineEls=LINES.map(L=>el('polyline',{points:L.p.map(q=>q.join(',')).join(' '),class:'fl',stroke:COL[L.k],'stroke-width':3,'marker-end':'url(#ar-'+L.k+')'},svg));
+const NE={};
+const LVC={prehomo:'var(--raw)',silocrudo:'var(--raw)',siloclk:'var(--clk)',silocem:'var(--cem)'};
+for(const n of NODES){
+  const d=ND[n], g=el('g',{transform:`translate(${d.x},${d.y})`},svg);
+  const r=el('rect',{x:0,y:0,width:W,height:Hn,rx:4,fill:'var(--panel2)',stroke:'var(--line)','stroke-width':1.5},g);
+  const lv=el('rect',{x:1,y:Hn-1,width:W-2,height:0,fill:LVC[n]||'var(--raw)',opacity:.18},g);
+  const tt=el('text',{x:8,y:15,fill:'var(--fg)','font-size':11.5,'font-weight':600},g,d.t);
+  const tg=el('text',{x:8,y:28,fill:'var(--muted)','font-size':9.5},g,d.g);
+  const v=el('text',{x:8,y:52,fill:'var(--fg)','font-size':16,class:'dv'},g,'');
+  const s=el('text',{x:8,y:66,fill:'var(--muted)','font-size':8.5},g,'');
+  el('rect',{x:8,y:73,width:W-44,height:5,rx:1,fill:'var(--line)'},g);
+  const hb=el('rect',{x:8,y:73,width:0,height:5,rx:1,fill:'var(--ok)'},g);
+  const hn=el('text',{x:W-8,y:79,fill:'var(--muted)','font-size':9.5,'text-anchor':'end',class:'dv'},g,'');
+  const bd=el('g',{opacity:0},g);
+  el('rect',{x:W-58,y:-11,width:58,height:15,rx:2,fill:'var(--crit)'},bd);
+  el('text',{x:W-29,y:0,fill:'#fff','font-size':8.5,'font-weight':600,'text-anchor':'middle'},bd,'RESTRICCIÓN');
+  const al=el('g',{opacity:0},g);
+  el('rect',{x:0,y:-11,width:70,height:15,rx:2,fill:'var(--genix)'},al);
+  el('text',{x:35,y:0,fill:'#fff','font-size':8.5,'font-weight':600,'text-anchor':'middle'},al,'ALERTA');
+  const mb=el('g',{opacity:0},g); el('rect',{x:W-58,y:Hn-1,width:58,height:13,rx:2,fill:'#24305A',stroke:'var(--genix)','stroke-width':1},mb);
+  const mbt=el('text',{x:W-29,y:Hn+9,fill:'var(--genix)','font-size':8.5,'text-anchor':'middle'},mb,'');
+  g.style.cursor='pointer'; g.addEventListener('click',()=>{SEL=SEL===n?null:n;render();});
+  NE[n]={r,lv,tt,tg,v,s,hb,hn,bd,al,mb,mbt};
+}
+function fitText(e,s,max){ e.textContent=s; try{ let k=s.length; while(k>4&&e.getComputedTextLength()>max){ k--; e.textContent=s.slice(0,k)+'…'; } }catch(x){} }
+function paintNames(){ for(const n of NODES){ fitText(NE[n].tt,ND[n].t,W-14); fitText(NE[n].tg,ND[n].g,W-14); } }
+
+/* ---------- Estado ---------- */
+function run(){ sims={con:simulate(cur,'con'),sin:simulate(cur,'sin')}; }
+const tf=t=>cur.H<=200?`${fmt(t,1)} h`:`día ${fmt(t/24,1)}`;
+function buildSel(){ const box=$('scSel'); if(!box.options.length){ SC.forEach(sc=>{const o=document.createElement('option');o.value=sc.id;o.textContent=sc.name;box.appendChild(o);}); box.onchange=()=>select(SC.find(x=>x.id===box.value)); } box.value=cur.id; }
+function select(sc){
+  cur=sc; buildSel(); $('desc').textContent=sc.desc; run();
+  const fa=sc.events.find(e=>e.kind==='alert'&&e.mode==='con');
+  const t0=fa?fa.t+(sc.H>200?24:1):sc.H*0.3;
+  idx=Math.min(sims.con.N,Math.round(t0/sims.con.dt));
+  $('scrub').max=sims.con.N; drawChart(); render();
+}
+
+/* ---------- Gráfico de producción ---------- */
+const CW=600,CH=220,PL=44,PR=8,PT=18,PB=24; let YM=200;
+const xs=t=>PL+(CW-PL-PR)*t/cur.H, ys=v=>PT+(CH-PT-PB)*(1-v/YM);
+let chartSvg,ph;
+function drawChart(){
+  YM=Math.ceil(Math.max(CFG.cap.horno,CFG.proc.meta)*1.15/50)*50;
+  const box=$('chart'); box.innerHTML='';
+  chartSvg=el('svg',{viewBox:`0 0 ${CW} ${CH}`,role:'img','aria-label':'Tendencia de clínker con y sin intervención'}); box.appendChild(chartSvg);
+  const step=YM>300?100:50;
+  for(let v=0;v<=YM;v+=step){el('line',{x1:PL,x2:CW-PR,y1:ys(v),y2:ys(v),stroke:'var(--line)','stroke-width':1},chartSvg);el('text',{x:PL-6,y:ys(v)+3,fill:'var(--muted)','font-size':10,'text-anchor':'end',class:'dv'},chartSvg,fmt(v));}
+  for(let i=0;i<=6;i++){const t=cur.H*i/6;el('text',{x:xs(t),y:CH-6,fill:'var(--muted)','font-size':10,'text-anchor':'middle',class:'dv'},chartSvg,cur.H<=200?fmt(t,0)+' h':'día '+fmt(t/24,0));}
+  const path=sim=>{const st=Math.max(1,Math.floor(sim.out.length/600));let d='';for(let i=0;i<sim.out.length;i+=st){const o=sim.out[i];d+=(d?'L':'M')+xs(o.t).toFixed(1)+','+ys(o.R).toFixed(1);}const o=sim.out[sim.out.length-1];return d+'L'+xs(o.t).toFixed(1)+','+ys(o.R).toFixed(1);};
+  const pc=path(sims.con);
+  el('path',{d:pc+`L${xs(cur.H)},${ys(0)}L${xs(0)},${ys(0)}Z`,fill:'var(--genix)',opacity:.08},chartSvg);
+  el('path',{d:path(sims.sin),fill:'none',stroke:'var(--muted)','stroke-width':1.5,opacity:.9},chartSvg);
+  el('path',{d:pc,fill:'none',stroke:'var(--genix)','stroke-width':2},chartSvg);
+  el('line',{x1:PL,x2:CW-PR,y1:ys(CFG.proc.meta),y2:ys(CFG.proc.meta),stroke:'var(--brand)','stroke-width':1.2,'stroke-dasharray':'5 4'},chartSvg);
+  for(const e of cur.events){
+    if(e.kind==='alert'&&e.mode==='con'){const g=el('path',{d:`M${xs(e.t)},${PT-2}l5,-9h-10z`,fill:'var(--genix)'},chartSvg);el('title',{},g,`${tf(e.t)} alerta Genix`);}
+    if(e.kind==='fail'&&e.mode==='sin'){const g=el('rect',{x:xs(e.t)-4,y:PT-11,width:8,height:8,fill:'var(--crit)'},chartSvg);el('title',{},g,`${tf(e.t)} falla sin aviso`);}
+  }
+  ph=el('line',{x1:0,x2:0,y1:PT,y2:CH-PB,stroke:'var(--fg)','stroke-width':1,opacity:.7},chartSvg);
+  chartSvg.addEventListener('click',ev=>{const r=chartSvg.getBoundingClientRect();const x=(ev.clientX-r.left)*CW/r.width;const t=clamp((x-PL)/(CW-PL-PR)*cur.H,0,cur.H);idx=Math.round(t/sims.con.dt);render();});
+}
+
+/* ---------- Proceso, energía, calidad ---------- */
+let MET={};
+const r28=(fc,cal,bl)=>18+38*fc+0.004*(bl-3900)-1.5*(cal-1.25);
+function metal(o,t){
+  const P=CFG.proc, X=k=>xv(cur,k,t,mode);
+  const low=o.R>20?150*Math.max(0,(P.meta-o.R)/P.meta):0;
+  const tc=P.tc0+8*Math.sin(t/6)+X('tc')+low;
+  const air=X('air');
+  const flow=P.flow0*(o.R/P.meta)*(1+air)*(1+0.01*Math.sin(t/2.7));
+  const pw=2.3*Math.pow(Math.max(0,flow)/P.flow0,2);
+  const o2k=2.6+0.2*Math.sin(t/3.3), o2p=3.4+0.15*Math.sin(t/2.2)+air*16;
+  const cal=Math.max(0.4,1.25+0.15*Math.sin(t/5.1)+0.08*Math.sin(t/1.7)+X('cal'));
+  const bl=3950+40*Math.sin(t/4.4);
+  const res=r28(P.fc,cal,bl);
+  const subst=18+2*Math.sin(t/9);
+  const fuel=o.R*tc/6500;
+  const kwh=102+4*Math.sin(t/5);
+  const co2=P.fc*(525+tc*4.1868*0.095*(1-0.4*subst/100))+kwh*0.4;
+  const dp=12+0.6*Math.sin(t/3)+X('dp'), polvo=Math.max(2,9+1.5*Math.sin(t/2.1)+X('polvo'));
+  const tclk=105+6*Math.sin(t/3.7)+X('tclk');
+  const lsf=96+0.6*Math.sin(t/2.9)+0.3*Math.sin(t/1.1);
+  const gasOk=!(cur.id==='week'&&t>=140.5&&t<152);
+  return {tc,flow,pw,o2k,o2p,cal,bl,res,subst,fuel,kwh,co2,dp,polvo,tclk,lsf,gasOk};
+}
+function renderMet(sim,t){
+  const m=MET, o=sim.out[Math.min(idx,sim.N)], P=CFG.proc;
+  const G=[
+   ['Producción',[
+    ['Clínker',fmt(o.R,0)+' t/h',`meta ${fmt(P.meta)} t/h, ${fmt(o.R*24,0)} t/d`,o.R>=P.meta-2?'var(--ok)':'var(--warn)'],
+    ['Crudo a horno',fmt(o.R*P.fcr,0)+' t/h',`factor crudo ${fmt(P.fcr,2)}`,'var(--fg)'],
+    ['Cemento',fmt(o.Cm,0)+' t/h',`despacho ${fmt(o.Dsp,0)} t/h`,'var(--fg)']]],
+   ['Energía',[
+    ['Consumo térmico',fmt(m.tc,0)+' kcal/kg',`referencia ${fmt(P.tc0)} kcal/kg`,m.tc<=P.tc0+12?'var(--ok)':'var(--warn)'],
+    ['Consumo eléctrico',fmt(m.kwh,0)+' kWh/t','por tonelada de cemento','var(--fg)'],
+    ['Ventilador de tiro',fmt(m.flow,0)+' mil Nm³/h',`${fmt(m.pw,2)} MW`,m.flow<=P.flow0*1.04||o.R<P.meta*0.9?'var(--fg)':'var(--warn)']]],
+   ['Calidad con sensores virtuales',[
+    ['CaO libre',fmt(m.cal,2)+' %','sensor virtual entre muestras de laboratorio',m.cal<=1.8?'var(--ok)':'var(--crit)'],
+    ['Resistencia 28 días',fmt(m.res,1)+' MPa',`estimada, mínimo ${fmt(P.rmin)} MPa`,m.res>=P.rmin?'var(--ok)':'var(--crit)'],
+    ['Finura Blaine',fmt(m.bl,0)+' cm²/g','molinos de cemento','var(--fg)'],
+    ['LSF del crudo',fmt(m.lsf,1),'analizador de crudo en línea','var(--fg)']]],
+   ['Combustión y emisiones',[
+    ['CO2',fmt(m.co2,0)+' kg/t',`por t de cemento, factor clínker ${fmt(P.fc,2)}`,'var(--fg)'],
+    ['O2 entrada horno',fmt(m.o2k,1)+' %',`salida precalentador ${fmt(m.o2p,1)} %`,m.o2p-m.o2k<=1.2?'var(--ok)':'var(--warn)'],
+    ['Polvo en chimenea',fmt(m.polvo,0)+' mg/Nm³','límite 30 mg/Nm³',m.polvo<=30?'var(--ok)':'var(--crit)']]]
+  ];
+  $('met').innerHTML=G.map(g=>`<div class="grp"><span class="gh">${g[0]}</span><div class="mets">${g[1].map(x=>`<div class="mt"><span class="k">${x[0]}</span><span class="v" style="color:${x[3]}">${x[1]}</span><span class="s">${x[2]}</span></div>`).join('')}</div></div>`).join('');
+  const an=[['Analizador de gases entrada horno',m.gasOk],['Analizador de crudo en línea',true],['Escáner de carcasa',true],['Laboratorio de cal libre',true]];
+  $('anz').innerHTML=an.map(a=>`<span class="st2" style="color:${a[1]?'var(--ok)':'var(--warn)'};border-color:${a[1]?'var(--ok)':'var(--warn)'}">${a[0]} ${a[1]?'en servicio':'sin dato, usando sensor virtual'}</span>`).join(' ');
+  // tendencia de cal libre
+  const W_=760,H_=120,pl=40,pr_=8,pt=8,pb=20,lo=0.4,hi=2.4,X=tt=>pl+(W_-pl-pr_)*tt/cur.H,Y=v=>pt+(H_-pt-pb)*(1-(clamp(v,lo,hi)-lo)/(hi-lo));
+  const box=$('calc'); box.innerHTML=''; const sv=el('svg',{viewBox:`0 0 ${W_} ${H_}`,role:'img','aria-label':'Tendencia de CaO libre'}); box.appendChild(sv);
+  el('rect',{x:pl,y:Y(1.8),width:W_-pl-pr_,height:Y(0.8)-Y(1.8),fill:'var(--ok)',opacity:.12},sv);
+  [0.8,1.3,1.8,2.3].forEach(v=>el('text',{x:pl-5,y:Y(v)+3,fill:'var(--muted)','font-size':9,'text-anchor':'end'},sv,fmt(v,1)));
+  const calAt=tt=>Math.max(0.4,1.25+0.15*Math.sin(tt/5.1)+0.08*Math.sin(tt/1.7)+xv(cur,'cal',tt,mode));
+  let d=''; for(let i=0;i<=300;i++){const tt=cur.H*i/300; d+=(i?'L':'M')+X(tt).toFixed(1)+','+Y(calAt(tt)).toFixed(1);}
+  el('path',{d,fill:'none',stroke:'var(--genix)','stroke-width':1.5},sv);
+  const lab=cur.H<=200?2:24; for(let tt=1;tt<=t;tt+=lab){ el('circle',{cx:X(tt),cy:Y(calAt(tt)+0.06*Math.sin(tt*3.1)),r:2.6,fill:'var(--fg)'},sv); }
+  el('line',{x1:X(t),x2:X(t),y1:pt,y2:H_-pb,stroke:'var(--fg)',opacity:.7},sv);
+  el('text',{x:pl,y:H_-5,fill:'var(--muted)','font-size':9},sv,'CaO libre en %. Línea azul es el sensor virtual, puntos son muestras de laboratorio, banda verde es el rango objetivo');
+}
+
+/* ---------- Render ---------- */
+function stats(sim,upto){ let sum=0,lost=0; const dt=sim.dt, meta=CFG.proc.meta; for(let i=1;i<=upto;i++){const R=sim.out[i].R; sum+=R*dt; lost+=Math.max(0,meta-R)*dt;} return {avg:upto>0?sum/(upto*dt):sim.out[0].R,lost}; }
+function activeAlert(n,t){ if(mode!=='con')return null; let a=null; for(const e of cur.events){ if(e.node===n&&e.mode==='con'&&e.kind==='alert'&&e.t<=t){ const fix=cur.events.find(x=>x.node===n&&x.mode==='con'&&x.kind==='action'&&x.t>e.t); if(!fix||fix.t>t) a=e; } } return a; }
+const BINDN={'Horno':'horno','Precalentador':'precal','Ventilador de tiro':'tiro','Filtro de mangas':'filtro','Enfriador':'enfriador','Combustibles':'comb','Crudo, silo vacío':'silocrudo','Silo de clínker lleno':'siloclk','Partida y rampa del horno':'horno'};
+function render(){
+  const sim=sims[mode], o=sim.out[Math.min(idx,sim.N)], t=o.t, P=CFG.proc, cp=sim.cp;
+  $('scrub').value=idx; $('clock').textContent=tf(t);
+  MET=metal(o,t);
+  document.querySelector('.wrap').classList.toggle('paused',!playing);
+  const aut=(s,r)=>r>1?fmt(s/r,1)+' h de autonomía':'sin consumo';
+  const vals={
+    cantera:[fmt(o.F)+' t/h','caliza a chancado'],
+    chan:[fmt(o.F)+' t/h','hacia cancha'],
+    prehomo:[fmt(o.Sp/cp.pre*100,0)+' %',fmt(o.Sp/1000,1)+' kt, '+aut(o.Sp,o.rm)],
+    crudo:[fmt(o.rm)+' t/h','crudo, LSF '+fmt(MET.lsf,1)],
+    silocrudo:[fmt(o.Sc/cp.cru*100,0)+' %',fmt(o.Sc/1000,1)+' kt, '+aut(o.Sc,o.R*P.fcr)],
+    precal:[fmt(o.R*P.fcr)+' t/h','alimentación a horno'],
+    tiro:[fmt(MET.flow)+' mil Nm³/h','O2 salida precal. '+fmt(MET.o2p,1)+' %'],
+    horno:[fmt(o.R,0)+' t/h','clínker, CaO libre '+fmt(MET.cal,2)+' %'],
+    filtro:[fmt(MET.dp,1)+' mbar','polvo '+fmt(MET.polvo,0)+' mg/Nm³'],
+    enfriador:[fmt(o.R,0)+' t/h','clínker a '+fmt(MET.tclk,0)+' °C'],
+    siloclk:[fmt(o.Sk/cp.clk*100,0)+' %',fmt(o.Sk/1000,1)+' kt, '+aut(o.Sk,o.Cm*P.fc)],
+    aditivos:[fmt(o.Cm*(1-P.fc),0)+' t/h','yeso y adiciones'],
+    cem1:[fmt(o.cm1,0)+' t/h','Blaine '+fmt(MET.bl,0)+' cm²/g'],
+    cem2:[fmt(o.cm2,0)+' t/h','R28 estimada '+fmt(MET.res,1)+' MPa'],
+    silocem:[fmt(o.Se/cp.cem*100,0)+' %',fmt(o.Se/1000,1)+' kt, '+aut(o.Se,o.Dsp)],
+    despacho:[fmt(o.Dsp,0)+' t/h','granel y ensacado'],
+    comb:[fmt(MET.fuel,1)+' t/h','sustitución alterno '+fmt(MET.subst,0)+' %']
+  };
+  const bn=BINDN[o.bind];
+  for(const n of NODES){
+    const e=NE[n], h=o.hl[n];
+    e.v.textContent=vals[n][0]; fitText(e.s,vals[n][1],W-14);
+    e.hb.setAttribute('width',Math.max(0,(W-44)*h/100)); e.hb.setAttribute('fill',band(h)); e.hn.textContent='HI '+fmt(h,0);
+    const isB=bn===n&&o.R<P.meta-0.5;
+    e.r.setAttribute('stroke',isB?'var(--crit)':band(h)); e.r.setAttribute('stroke-width',isB?3:1.5); e.r.setAttribute('stroke-dasharray',isB?'6 3':'none');
+    e.bd.setAttribute('opacity',isB?1:0);
+    e.al.setAttribute('opacity',activeAlert(n,t)?1:0);
+    const lvl=n==='prehomo'?o.Sp/cp.pre:n==='silocrudo'?o.Sc/cp.cru:n==='siloclk'?o.Sk/cp.clk:n==='silocem'?o.Se/cp.cem:0;
+    e.lv.setAttribute('y',Hn-1-(Hn-2)*lvl); e.lv.setAttribute('height',(Hn-2)*lvl);
+  }
+  LINES.forEach((L,i)=>{const v=L.v(o);lineEls[i].setAttribute('stroke-width',clamp(v/35,1,9).toFixed(1));lineEls[i].classList.toggle('off',v<2);});
+  $('fsT').textContent='| '+tf(t);
+  // capacidades
+  const bx=$('bars'); bx.innerHTML=''; const mn=Math.min(...o.caps.map(c=>c[1])); const BM=Math.max(P.meta,...o.caps.map(c=>c[1]))*1.05;
+  for(const [lab,v] of o.caps){ const d=document.createElement('div'); d.className='bar'+(v<=mn+0.5&&v<P.meta?' isbind':'');
+    d.innerHTML=`<span class="lab" title="${lab}">${lab}</span><span class="track"><span class="fill" style="width:${Math.min(100,v/BM*100)}%"></span><span class="mk" style="left:${P.meta/BM*100}%"></span></span><span class="val">${fmt(v)}</span>`; bx.appendChild(d); }
+  const tt=o.tte.slice().sort((a,b)=>a[1]-b[1])[0];
+  $('buf').textContent=(tt?`${tt[0]} en ${fmt(tt[1],1)} h a la tasa actual. `:'Silos estables. ')+'Línea blanca es la meta. Etapa en rojo es la menor capacidad sostenible bajo la meta. Molienda de cemento expresada en clínker consumido.';
+  if(ph){ph.setAttribute('x1',xs(t));ph.setAttribute('x2',xs(t));}
+  // KPI
+  const st=stats(sim,idx);
+  $('kR').textContent=fmt(o.R)+' t/h'; $('kRs').textContent=`meta ${fmt(P.meta)} t/h, ${fmt(o.R*24)} t/d`;
+  $('kAvg').textContent=fmt(st.avg)+' t/h'; $('kAvgs').textContent=fmt(st.avg/P.meta*100,1)+' % de la meta hasta '+tf(t);
+  $('kLost').textContent=fmt(st.lost/1000,1)+' kt'; $('kLosts').textContent='clínker no producido hasta '+tf(t);
+  $('kBind').textContent=o.R<P.meta-0.5?o.bind:'Meta'; $('kBinds').textContent=tt?`${tt[0]} en ${fmt(tt[1],1)} h`:'sin silo en descenso';
+  const act=NODES.filter(n=>activeAlert(n,t)); const worst=NODES.reduce((a,n)=>o.hl[n]<o.hl[a]?n:a,NODES[0]);
+  $('kGx').textContent=mode==='con'?String(act.length):'-'; $('kGxs').textContent='menor salud '+ND[worst].t+' HI '+fmt(o.hl[worst],0);
+  let lead=null; for(const n of act){ const fe=cur.events.find(e=>e.node===n&&e.mode==='sin'&&e.kind==='fail'&&e.t>t); if(fe&&(!lead||fe.t-t<lead[0])) lead=[fe.t-t,n]; }
+  if(lead){$('kLead').textContent=cur.H<=200?fmt(lead[0],1)+' h':fmt(lead[0]/24,0)+' días';$('kLeads').textContent='antes de falla en '+ND[lead[1]].t;}
+  else {$('kLead').textContent='-';$('kLeads').textContent=act.length?'acción en curso':'sin alertas abiertas';}
+  renderWF(sim); renderRisk(t); renderOpt(o); renderMet(sim,t); renderEq(o,t); renderNoti(t); renderGx(o,t);
+  $('logMode').textContent='| '+(mode==='con'?'con acción recomendada':'sin intervención');
+  const ul=$('log'); ul.innerHTML='';
+  const evs=cur.events.filter(e=>(e.mode==='both'||e.mode===mode)&&e.t<=t).sort((a,b)=>b.t-a.t);
+  if(!evs.length){const li=document.createElement('li');li.className='empty';li.innerHTML='<span class="t">'+tf(t)+'</span><span>Sin eventos hasta este momento. Avanza la barra de tiempo o presiona Reproducir.</span>';ul.appendChild(li);}
+  for(const e of evs){ const li=document.createElement('li'); li.className=e.kind;
+    li.innerHTML=`<span class="t">${tf(e.t)}</span><span>${e.model?`<span class="m">${e.model}</span>`:''}${txt(e.text)}${e.act?`<br><span class="a">Recomendación. ${txt(e.act)}</span>`:''}</span>`; ul.appendChild(li); }
+}
+
+/* ---------- Cascada de pérdidas ---------- */
+function renderWF(sim){
+  const acc={}; let tot=0; const up=Math.min(idx,sim.N), meta=CFG.proc.meta;
+  for(let i=1;i<=up;i++){const o=sim.out[i]; if(!o.cause)continue; const l=(meta-o.R)*sim.dt; acc[o.cause]=(acc[o.cause]||0)+l; tot+=l;}
+  const rows=Object.entries(acc).sort((a,b)=>b[1]-a[1]); const box=$('wf'); box.innerHTML='';
+  if(!rows.length){ box.innerHTML='<p class="empty">Sin clínker bajo la meta hasta '+tf(sim.out[up].t)+'.</p>'; $('wfN').textContent=''; return; }
+  const mx=rows[0][1];
+  for(const [k,v] of rows){ const d=document.createElement('div'); d.className='bar wfb';
+    d.innerHTML=`<span class="lab" title="${k}">${k}</span><span class="track"><span class="fill" style="width:${v/mx*100}%"></span></span><span class="val">${fmt(v/1000,1)} kt</span>`; box.appendChild(d); }
+  $('wfN').textContent=`${fmt(tot/1000,1)} kt de clínker bajo la meta hasta ${tf(sim.out[up].t)}, equivalentes a ${fmt(tot/CFG.proc.fc/1000,1)} kt de cemento con factor clínker ${fmt(CFG.proc.fc,2)}. Cada tonelada perdida queda asignada a la etapa que limitaba en ese momento.`;
+}
+/* ---------- Toneladas en riesgo ---------- */
+function riskList(){
+  const al=cur.events.filter(e=>e.kind==='alert'&&e.mode==='con').sort((a,b)=>a.t-b.t);
+  const Wn=cur.H<=200?72:720, a=sims.con, b=sims.sin, FC=CFG.proc.fc;
+  return al.map((e,i)=>{ const end=Math.min(cur.H,e.t+Wn,i+1<al.length?al[i+1].t:Infinity); let v=0,vc=0;
+    for(let k=0;k<=a.N;k++){const t=a.out[k].t; if(t>=e.t&&t<end){ v+=(a.out[k].R-b.out[k].R)*a.dt; vc+=(a.out[k].Cm-b.out[k].Cm)*a.dt; }}
+    v=Math.max(0,v); vc=Math.max(0,vc); return {e,v,vc,s:Math.max(v/FC,vc),end}; }).sort((x,y)=>y.s-x.s);
+}
+function renderRisk(t){
+  const box=$('risk'); box.innerHTML=''; const L=mode==='con'?riskList().filter(x=>x.e.t<=t):[];
+  if(!L.length){ box.innerHTML='<li><span></span><span class="empty">Sin alertas abiertas.</span><span></span></li>'; return; }
+  L.forEach((x,i)=>{ const li=document.createElement('li'); if(x.e.t<=t&&t<x.end) li.className='on';
+    li.innerHTML=`<span class="rk">${i+1}</span><span><b>${ND[x.e.node].t}</b> <span class="mono" style="color:var(--genix);font-size:11px">${x.e.model}</span><br><span style="color:var(--muted)">${tf(x.e.t)}. ${txt(x.e.act||x.e.text)}</span></span><span class="tn">${fmt(x.v/1000,1)} kt clínker<small>${fmt(x.vc/1000,1)} kt cemento</small></span>`;
+    box.appendChild(li); });
+}
+/* ---------- Optimizador de factor clínker ---------- */
+function renderOpt(o){
+  const W_=360,H_=200,pl=40,pr_=10,pt=14,pb=26, P=CFG.proc, lo=0.65, hi=0.90;
+  const R=o.R, ct=o.c.cem1+o.c.cem2, ad=o.c.aditivos;
+  const cem=fc=>Math.min(ct,ad/Math.max(0.01,1-fc),R/fc);
+  const fs=[]; for(let f=lo;f<=hi+1e-9;f+=0.005) fs.push(+f.toFixed(3));
+  const vals=fs.map(cem), mx=Math.max(1,...vals)*1.06, mn=Math.min(...vals)*0.94;
+  const ok=fc=>r28(fc,MET.cal,MET.bl)>=P.rmin;
+  let best=null; fs.forEach((f,i)=>{ if(ok(f)&&(!best||vals[i]>best[1]+0.05)) best=[f,vals[i]]; });
+  let fmin=null; for(const f of fs){ if(ok(f)){ fmin=f; break; } }
+  const X=f=>pl+(W_-pl-pr_)*(f-lo)/(hi-lo), Y=v=>pt+(H_-pt-pb)*(1-(v-mn)/Math.max(1e-6,mx-mn));
+  const box=$('opt'); box.innerHTML='';
+  const sv=el('svg',{viewBox:`0 0 ${W_} ${H_}`,role:'img','aria-label':'Cemento según factor clínker'}); box.appendChild(sv);
+  const xr=fmin==null?X(hi):X(fmin);
+  el('rect',{x:X(lo),y:pt,width:Math.max(0,xr-X(lo)),height:H_-pt-pb,fill:'var(--crit)',opacity:.1},sv);
+  if(xr-X(lo)>60) el('text',{x:X(lo)+4,y:pt+12,fill:'var(--crit)','font-size':9.5},sv,'bajo resistencia mínima');
+  for(let i=0;i<=3;i++){const v=mn+(mx-mn)*i/3; el('line',{x1:pl,x2:W_-pr_,y1:Y(v),y2:Y(v),stroke:'var(--line)'},sv); el('text',{x:pl-5,y:Y(v)+3,fill:'var(--muted)','font-size':9.5,'text-anchor':'end',class:'dv'},sv,fmt(v,0));}
+  [0.65,0.70,0.75,0.80,0.85,0.90].forEach(f=>el('text',{x:X(f),y:H_-8,fill:'var(--muted)','font-size':9.5,'text-anchor':'middle',class:'dv'},sv,fmt(f,2)));
+  el('path',{d:fs.map((f,i)=>(i?'L':'M')+X(f).toFixed(1)+','+Y(vals[i]).toFixed(1)).join(''),fill:'none',stroke:'var(--genix)','stroke-width':2},sv);
+  OPTBEST=R<5?null:best;
+  if(best) el('circle',{cx:X(best[0]),cy:Y(best[1]),r:5,fill:'var(--ok)'},sv);
+  el('line',{x1:X(P.fc),x2:X(P.fc),y1:pt,y2:H_-pb,stroke:'var(--fg)','stroke-dasharray':'3 3'},sv);
+  const now=cem(P.fc), co2=f=>f*(525+MET.tc*4.1868*0.095*(1-0.4*MET.subst/100))+MET.kwh*0.4;
+  if(R<5){ $('optN').textContent='Horno detenido. El optimizador se recalcula cuando vuelve la producción de clínker.'; return; }
+  $('optN').textContent=`Cemento posible en t/h según factor clínker, con el clínker y los molinos disponibles ahora. Actual ${fmt(P.fc,2)} entrega ${fmt(now,0)} t/h con ${fmt(co2(P.fc),0)} kg de CO2 por tonelada. `+(best?`Recomendado ${fmt(best[0],3)} con ${fmt(best[1],0)} t/h y ${fmt(co2(best[0]),0)} kg de CO2 por tonelada. `:'')+`Bajar el factor clínker rinde más cemento por tonelada de clínker y baja el CO2, hasta la resistencia mínima que estima el sensor virtual o la capacidad de los molinos.`;
+}
+
+/* ---------- Avisos al ERP ---------- */
+const PRI=['1 Muy alta','2 Alta','3 Media','4 Baja'], PCOL=['var(--crit)','var(--hot)','var(--warn)','var(--muted)'];
+const STS=['Aviso creado','OT aprobada','En ejecución','Cerrada'], SCOL=['var(--genix)','var(--warn)','var(--hot)','var(--ok)'];
+const NOSILO=['prehomo','silocrudo','siloclk','silocem'];
+function notiList(t){
+  const out=[];
+  if(mode==='con'){ const risk=riskList();
+    cur.events.filter(e=>e.mode==='con'&&e.kind==='alert'&&e.t<=t).sort((a,b)=>a.t-b.t).forEach((e,i)=>{
+      const act=cur.events.find(x=>x.node===e.node&&x.mode==='con'&&x.kind==='action'&&x.t>e.t);
+      const fail=cur.events.find(x=>x.node===e.node&&x.mode==='sin'&&x.kind==='fail'&&x.t>e.t);
+      const rv=(risk.find(x=>x.e===e)||{s:0}).s; const p=rv>3000?0:rv>1000?1:rv>200?2:3;
+      let st=0; if(t>=e.t+0.25) st=1; if(act&&t>=act.t) st=2; if(act&&t>=act.t+3) st=3;
+      out.push({i,e,src:'Genix '+e.model,p,st,due:fail?fail.t:(act?act.t:null),desc:txt(e.text),auto:true}); });
+  } else {
+    cur.events.filter(e=>e.mode==='sin'&&e.kind==='fail'&&e.t+0.5<=t&&!NOSILO.includes(e.node)).sort((a,b)=>a.t-b.t).forEach((e,i)=>{
+      const md=cur.mods.find(m=>(m.m==='sin'||m.m==='both')&&m.t0<=e.t+0.01&&m.t1>e.t+0.01&&m.n!=='meta'); const end=md?md.t1:null;
+      let st=0; if(t>=e.t+1) st=1; if(t>=e.t+1.5) st=2; if(end&&t>=end) st=3;
+      out.push({i,e,src:'Manual por operador',p:0,st,due:e.t,desc:'Avería. '+txt(e.text),auto:false}); });
+  }
+  return out.reverse();
+}
+function renderNoti(t){
+  $('notiH').innerHTML='<tr><th>Aviso</th><th>Tipo</th><th>Orden de trabajo</th><th>Equipo</th><th>Prioridad</th><th>Descripción</th><th>Origen</th><th>Inicio requerido</th><th>Estado</th></tr>';
+  const L=notiList(t), tb=$('notiB'); tb.innerHTML='';
+  if(!L.length){ tb.innerHTML=`<tr><td colspan="9" class="empty">Sin avisos ${mode==='con'?'generados por Genix':'creados'} hasta ${tf(t)}.</td></tr>`; return; }
+  for(const x of L){ const n=(mode==='con'?0:50)+x.i, av='AV-'+String(451+n).padStart(5,'0'), ot=x.st>=1?'OT-'+String(12020+n):'-';
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td class="n">${av}</td><td>${x.auto?'Predictivo':'Correctivo'}</td><td class="n">${ot}</td><td class="n">${ND[x.e.node].g}</td><td><span class="pr" style="background:${PCOL[x.p]}">${PRI[x.p]}</span></td><td>${x.desc}</td><td class="${x.auto?'mod':''}" style="${x.auto?'':'color:var(--muted)'}">${x.src}</td><td>${x.due!=null?tf(x.due):'-'}</td><td><span class="st2" style="color:${SCOL[x.st]};border-color:${SCOL[x.st]}">${STS[x.st]}</span></td>`;
+    tb.appendChild(tr); }
+}
+/* ---------- Estado de equipos ---------- */
+function renderEq(o,t){
+  const tb=$('eqT'); tb.innerHTML='';
+  const rows=NODES.map(n=>{ const a=activeAlert(n,t); const fl=mode==='sin'?cur.events.filter(e=>e.node===n&&e.mode==='sin'&&e.kind==='fail'&&e.t<=t).pop():null; return {n,h:o.hl[n],a,fl}; }).sort((x,y)=>x.h-y.h).slice(0,8);
+  for(const r of rows){ const tr=document.createElement('tr');
+    const diag=r.a?txt(r.a.text):r.fl?txt(r.fl.text):(r.h>=85?'Operación normal':'Degradación en tendencia, sin alerta abierta');
+    tr.innerHTML=`<td>${ND[r.n].t}</td><td class="n">${ND[r.n].g}</td><td><span class="hip" style="background:${band(r.h)}">${fmt(r.h,0)}</span></td><td>${diag}</td><td class="mod">${r.a?r.a.model:''}</td><td>${r.a?txt(r.a.act||''):''}</td>`; tb.appendChild(tr); }
+}
+
+/* ---------- Capa de modelos Genix ---------- */
+const MODES={
+ tiro:['Desbalance por acumulación en rodete','Desalineación motor ventilador','Rodamiento lado acople','Soltura estructural'],
+ precal:['Infiltración de aire falso','Acumulación en cono de ciclón','Compuerta pendular trabada'],
+ horno:['Desgaste de refractario','Ovalidad de carcasa','Desgaste de llantas y rodillos'],
+ crudo:['Rodamiento de rodillo','Desgaste de mesa y rodillos','Vibración por cama inestable'],
+ enfriador:['Placas dañadas o desplazadas','Falla de ventilador de cámara','Atollo de clínker en parrilla'],
+ filtro:['Mangas colmatadas','Falla de válvula de pulso','Mangas rotas'],
+ cem1:['Rodamiento de eje intermedio del reductor','Desgaste de engranajes','Lubricación deficiente'],
+ cem2:['Desgaste de blindajes','Rodamiento de reductor','Lubricación deficiente'],
+ chan:['Desgaste de martillos','Rodamiento de rotor','Inchancable'],
+ comb:['Desgaste de rodillos del molino de carbón','Atollo de alimentador']
+};
+const MAINM={ciclon:{precal:1}};
+const VARS={
+ tiro:[['Vibración 1x',46],['Fase 1x estable',22],['Temperatura de descanso',14],['Corriente del motor',10],['Caudal de gases',8]],
+ precal:[['O2 salida precalentador',41],['Caudal de tiro vs alimentación',27],['Temperatura salida ciclón 1',18],['Presión de tiro',14]],
+ precal_ciclon:[['Presión en cono ciclón 4',44],['Temperatura salida ciclón 4',31],['Alimentación de crudo',15],['CaO libre',10]],
+ horno:[['Temperatura de carcasa 22 a 26 m',52],['Tendencia diaria',24],['Posición de llama',14],['Velocidad del horno',10]],
+ crudo:[['Vibración rodamiento rodillo 2',41],['Temperatura del rodamiento',29],['Presión hidráulica del rodillo',17],['Diferencial del molino',13]],
+ enfriador:[['Temperatura bajo parrilla cámara 3',38],['Presión cámara 3',33],['Caudal de aire',16],['Temperatura del clínker',13]],
+ filtro:[['Diferencial de presión',48],['Frecuencia de pulsos',22],['Caudal de gases',18],['Temperatura de gases',12]],
+ cem1:[['Vibración en frecuencia de engrane',39],['Temperatura de aceite',27],['Partículas en aceite',21],['Potencia del motor',13]],
+ cem2:[['Vibración de descanso',35],['Potencia',30],['Temperatura de aceite',20],['Carga circulante',15]],
+ chan:[['Corriente del motor',40],['Vibración del rotor',35],['Granulometría del producto',25]],
+ comb:[['Diferencial del molino de carbón',45],['Temperatura de salida',30],['Corriente',25]]
+};
+const ALT={tiro:'Si no hay ventana, bajar la carga del horno al 85 % hasta la limpieza para limitar la vibración.',
+ precal:'Si no es posible intervenir en el turno, aumentar la frecuencia de cañones de aire y reducir alimentación 5 %.',
+ horno:'Reforzar ventilación de carcasa y adelantar la parada si la temperatura supera 360 °C.',
+ crudo:'Operar con presión de molienda reducida para bajar la carga del rodamiento hasta el cambio.',
+ enfriador:'Aumentar el aire en la cámara 3 y bajar la cama de clínker hasta el cambio de placas.',
+ filtro:'Reducir caudal de gases 5 % y aumentar frecuencia de pulsos hasta cambiar mangas.',
+ cem1:'Bajar la carga del molino al 80 % y reforzar el filtrado de aceite hasta el cambio.',
+ cem2:'Bajar la carga del molino al 80 % hasta la inspección.',chan:'Reducir alimentación al chancador y revisar en la próxima detención.',comb:'Pasar a mayor proporción de combustible alterno mientras se interviene.'};
+const P_=n=>ND[n]?ND[n].t:'Planta completa';
+function efm(n,h){ const ms=MODES[n]; if(!ms)return null; const mi=(MAINM[cur.id]&&MAINM[cur.id][n])||0;
+  const p0=clamp((98-h)/55,0.03,0.97); return ms.map((m,i)=>[m,i===mi?p0:clamp(p0*0.22/(i+1)+0.02*(i+1),0.01,0.4)]).sort((a,b)=>b[1]-a[1]); }
+function rulOf(n,t){ if(!sims.sin)return null; const s=sims.sin, o=s.out[Math.min(idx,s.N)]; if(o.hl[n]>=85&&sims[mode].out[Math.min(idx,s.N)].hl[n]>=85) return null;
+  if(mode==='con'&&!activeAlert(n,t)&&sims.con.out[Math.min(idx,s.N)].hl[n]>=85) return null;
+  for(let i=Math.min(idx,s.N);i<=s.N;i++){ if(s.out[i].hl[n]<12) return s.out[i].t-t; } return Infinity; }
+const fmtH=h=>h===Infinity?'sobre el horizonte':h<48?fmt(h,0)+' h':fmt(h/24,1)+' días';
+const MODELS=[
+ ['M01','tiro','Modos de falla del ventilador de tiro','EFM','APM EFM',['Vibración 1x y 2x','Temperatura de descansos','Corriente','Caudal de gases'],'Precisión 92 %','1 min'],
+ ['M02','tiro','Anomalías multivariables del ventilador','Anomalías','Model Fabric',['14 señales del ventilador y el motor'],'Falsas alarmas 3 %','1 min'],
+ ['M03','precal','Balance de gases e infiltraciones','Balance','Model Fabric',['O2 entrada horno y salida precalentador','Caudal de tiro','Alimentación de crudo'],'Error 0,3 puntos O2','5 min'],
+ ['M04','precal','Riesgo de atollo de ciclones','Pronóstico','Model Fabric',['Presión de conos','Temperaturas de ciclones','Alimentación'],'Anticipación 4 a 8 h','1 min'],
+ ['M05','horno','Sensor virtual de CaO libre','Sensor virtual','Model Fabric',['Temperatura zona de sinterización','Potencia del horno','NOx','Química del crudo'],'MAE 0,11 %','5 min'],
+ ['M06','horno','Pronóstico de temperatura de carcasa','Pronóstico','Model Fabric',['Escáner de carcasa','Posición de llama','Velocidad del horno'],'MAE 6 °C a 7 días','15 min'],
+ ['M07','crudo','Vida remanente de rodamientos de rodillos','RUL','APM RUL',['Vibración','Temperatura de rodamientos','Presión hidráulica'],'Error 15 %','10 min'],
+ ['M08','crudo','Modos de falla del molino vertical','EFM','APM EFM',['Vibración','Diferencial del molino','Potencia','Presión de molienda'],'Precisión 90 %','1 min'],
+ ['M09','enfriador','Modos de falla del enfriador de parrilla','EFM','APM EFM',['Temperaturas bajo parrilla','Presión de cámaras','Caudal de aire'],'Precisión 89 %','1 min'],
+ ['M10','enfriador','Sensor virtual de temperatura del clínker','Sensor virtual','Model Fabric',['Temperatura de aire secundario y terciario','Caudal de aire de cámaras'],'MAE 8 °C','5 min'],
+ ['M11','filtro','Pronóstico de diferencial del filtro','Pronóstico','Model Fabric',['Diferencial por compartimento','Pulsos','Caudal de gases'],'MAE 0,8 mbar a 24 h','5 min'],
+ ['M12','filtro','Sensor virtual de polvo en chimenea','Sensor virtual','Model Fabric',['Opacidad','Diferencial','Estado de válvulas'],'MAE 2 mg/Nm³','1 min'],
+ ['M13','cem1','Modos de falla del reductor','EFM','APM EFM',['Vibración en frecuencia de engrane','Temperatura y partículas de aceite'],'Precisión 91 %','1 min'],
+ ['M14','cem2','Modos de falla del molino de cemento 2','EFM','APM EFM',['Vibración','Potencia','Temperatura de aceite'],'Precisión 90 %','1 min'],
+ ['M15','cem2','Sensor virtual de resistencia a 28 días','Sensor virtual','Model Fabric',['Factor clínker','CaO libre','Blaine','Química de clínker'],'MAE 1,2 MPa','15 min'],
+ ['M16','cem1','Sensor virtual de finura Blaine','Sensor virtual','Model Fabric',['Velocidad del separador','Potencia','Carga circulante'],'MAE 60 cm²/g','5 min'],
+ ['M17','comb','Sensor virtual de poder calorífico alterno','Sensor virtual','Model Fabric',['Mezcla de combustibles','Temperatura de quemador','O2'],'MAE 150 kcal/kg','5 min'],
+ ['M18','chan','Modos de falla del chancador','EFM','APM EFM',['Corriente','Vibración del rotor','Granulometría'],'Precisión 88 %','1 min'],
+ ['M19','siloclk','Pronóstico de niveles de silos','Pronóstico','Coordinador',['Niveles de silos y canchas','Producción y despacho'],'MAE 2 % a 12 h','5 min'],
+ ['M20','planta','Coordinador de restricciones','Simulación','Coordinador',['Capacidad y salud de las 17 etapas','Alertas abiertas'],'Balance de masa cerrado','5 min'],
+ ['M21','planta','Optimizador de factor clínker','Optimizador','Model Fabric',['Clínker disponible','Molinos','Resistencia estimada'],'Restricción de calidad','15 min'],
+ ['M22','planta','IA prescriptiva de eventos','IA prescriptiva','Genix IA',['Alertas','Historial de órdenes','Manuales y FMECA'],'Revisión por especialista','por evento'],
+ ['M23','planta','Calidad de dato de analizadores','Calidad de dato','Model Fabric',['Analizadores de gases y crudo','Laboratorio'],'Detección en 30 min','1 min'],
+ ['M24','despacho','Pronóstico de demanda de despacho','Pronóstico','Model Fabric',['Despachos históricos','Pedidos','Calendario'],'MAPE 6 % a 24 h','1 h']
+].map(a=>({id:a[0],n:a[1],name:a[2],type:a[3],eng:a[4],inp:a[5],perf:a[6],freq:a[7]}));
+const TYKEY={'EFM':['EFM'],'RUL':['RUL'],'Anomalías':['EFM vibración'],'Balance':['Balance de gases'],'Pronóstico':['Time series'],'Calidad de dato':['calidad de dato']};
+function mOut(m,o,t){
+  const h=m.n!=='planta'&&o.hl[m.n]!=null?o.hl[m.n]:95, a=m.n!=='planta'?activeAlert(m.n,t):null, P=CFG.proc;
+  const hit=a&&(TYKEY[m.type]||[]).some(k=>a.model.includes(k));
+  let out='',st=hit?2:(h<60?1:0);
+  switch(m.type){
+   case 'EFM':{ const e=efm(m.n,h); out=e[0][1]>0.3?`${e[0][0]}, ${fmt(e[0][1]*100,0)} %`:'Sin modo de falla activo'; break;}
+   case 'RUL':{ const r=rulOf(m.n,t); out=r==null?'Sin degradación, sobre 60 días':`RUL ${fmtH(r)}`; if(r!=null&&r<72) st=Math.max(st,1); break;}
+   case 'Anomalías':{ const s=clamp((98-h)/60,0.02,1); out=`Índice ${fmt(s,2)}, umbral 0,35`; if(s>0.35) st=Math.max(st,1); break;}
+   case 'Balance':{ const ai=xv(cur,'air',t,mode); out=`Aire falso ${fmt(4+ai*100,1)} %, ${fmt(MET.o2p-MET.o2k,1)} puntos de O2`; if(ai>0.04) st=Math.max(st,1); break;}
+   case 'Sensor virtual':{
+     if(m.id==='M05'){ out=`CaO libre ${fmt(MET.cal,2)} %`; if(MET.cal>1.8) st=2; }
+     else if(m.id==='M10') out=`${fmt(MET.tclk,0)} °C`;
+     else if(m.id==='M12'){ out=`${fmt(MET.polvo,0)} mg/Nm³`; if(MET.polvo>25) st=2; }
+     else if(m.id==='M15'){ out=`${fmt(MET.res,1)} MPa`; if(MET.res<P.rmin) st=2; }
+     else if(m.id==='M16') out=`${fmt(MET.bl,0)} cm²/g`;
+     else out=`${fmt(4200+120*Math.sin(t/8),0)} kcal/kg`; break;}
+   case 'Pronóstico':{
+     if(m.id==='M04'){ const r=clamp((92-o.hl.precal)/80,0.02,0.98); out=cur.id==='aire'?'Riesgo de atollo 6 %':`Riesgo de atollo ${fmt(r*100,0)} % en 6 h`; }
+     else if(m.id==='M06'){ const T=cur.id==='refr'?290+(100-o.hl.horno)*1.1:285+4*Math.sin(t/30); out=`Máximo ${fmt(T,0)} °C`+(cur.id==='refr'&&o.hl.horno<75?`, 380 °C en ${fmt(Math.max(1,(380-T)/4),0)} días`:''); }
+     else if(m.id==='M11'){ const dp=MET.dp; out=`${fmt(dp,1)} mbar`+(dp>14?`, límite 20 mbar en ${fmt(Math.max(1,(20-dp)/0.25),0)} h`:', estable'); if(dp>14) st=Math.max(st,1); }
+     else if(m.id==='M19'){ const tt=o.tte.slice().sort((x,y)=>x[1]-y[1])[0]; out=tt?`${tt[0]} en ${fmt(tt[1],1)} h`:'Silos estables'; if(tt&&tt[1]<12) st=Math.max(st,1); }
+     else out=`${fmt(CFG.cap.despacho*(1+0.05*Math.sin(t/12)),0)} t/h próximas 24 h`; break;}
+   case 'Simulación': out=o.R<P.meta-0.5?`Restricción ${o.bind}`:'Sin restricción bajo la meta'; if(o.R<P.meta-0.5) st=1; break;
+   case 'Optimizador':{ out=OPTBEST?`Factor clínker recomendado ${fmt(OPTBEST[0],3)}`:'Sin recomendación'; break;}
+   case 'IA prescriptiva':{ const n=NODES.filter(x=>activeAlert(x,t)).length; out=n?`${n} resumen${n>1?'es':''} de evento abierto${n>1?'s':''}`:'Sin eventos abiertos'; if(n) st=2; break;}
+   case 'Calidad de dato': out=MET.gasOk?'Analizadores consistentes':'Analizador de gases congelado, sensor virtual activo'; if(!MET.gasOk) st=2; break;
+  }
+  if(mode==='sin'&&st===2&&m.type!=='Sensor virtual') st=1;
+  return {out,st};
+}
+const MST=[['Normal','var(--ok)'],['Vigilancia','var(--warn)'],['Alerta','var(--genix)']];
+let SEL=null, MF='Todos', QA=0, OPTBEST=null;
+function autoSel(o,t){ const a=NODES.filter(n=>activeAlert(n,t)); if(a.length) return a[a.length-1]; return NODES.filter(n=>MODES[n]).reduce((x,n)=>o.hl[n]<o.hl[x]?n:x,'tiro'); }
+function renderGx(o,t){
+  const sim=sims[mode];
+  // arquitectura
+  const res=MODELS.map(m=>mOut(m,o,t)); const nal=res.filter(r=>r.st===2).length, nvi=res.filter(r=>r.st===1).length;
+  $('aD').textContent=`1.240 señales, ${MET.gasOk?'4 de 4':'3 de 4'} analizadores en servicio`;
+  $('aM').textContent=`${MODELS.length} modelos, ${nal} en alerta, ${nvi} en vigilancia`;
+  $('aC').textContent=o.R<CFG.proc.meta-0.5?`Restricción ahora: ${o.bind}`:'Planta en meta, holgura calculada';
+  const nav=mode==='con'?cur.events.filter(e=>e.mode==='con'&&e.kind==='alert'&&e.t<=t).length:0;
+  $('aA').textContent=mode==='con'?`${nav} aviso${nav===1?'':'s'} al ERP generado${nav===1?'':'s'} por Genix`:'Sin intervención, avisos manuales tras la falla';
+  // node badges
+  for(const n of NODES){ const c=MODELS.filter(m=>m.n===n).length; NE[n].mb.setAttribute('opacity',c?1:0); NE[n].mbt.textContent=c?c+(c>1?' modelos':' modelo'):''; NE[n].r.setAttribute('fill',n===(SEL||autoSel(o,t))?'#2A3350':'var(--panel2)'); }
+  // activo seleccionado
+  const n=SEL||autoSel(o,t), h=o.hl[n], a=activeAlert(n,t);
+  $('adT').textContent='| '+ND[n].t+' '+ND[n].g; $('adS').textContent=SEL?'Seleccionado en el diagrama. Haz clic en otra etapa para cambiar.':'Sigue la alerta más reciente. Haz clic en una etapa del diagrama para fijarla.';
+  const cards=[];
+  const e=efm(n,h);
+  if(e){ cards.push(`<div class="mc${a?' al':''}"><div class="h"><b>Modos de falla</b><span class="ty">EFM</span></div><span class="sm">Probabilidad de cada modo según firmas de falla del equipo</span>${e.map(x=>`<div class="pb"><span>${x[0]}</span><span class="tr"><i style="width:${x[1]*100}%"></i></span><span class="vv">${fmt(x[1]*100,0)} %</span></div>`).join('')}</div>`); }
+  // salud y vida remanente
+  const W_=300,H_=96,pl=26,pr=6,pt=6,pb=16, X=tt=>pl+(W_-pl-pr)*tt/cur.H, Y=v=>pt+(H_-pt-pb)*(1-v/100);
+  let dp='',dfut=''; const st=Math.max(1,Math.floor(sim.N/200));
+  for(let i=0;i<=Math.min(idx,sim.N);i+=st){ const q=sim.out[i]; dp+=(dp?'L':'M')+X(q.t).toFixed(1)+','+Y(q.hl[n]).toFixed(1); }
+  const ss=sims.sin; for(let i=Math.min(idx,ss.N);i<=ss.N;i+=st){ const q=ss.out[i]; dfut+=(dfut?'L':'M')+X(q.t).toFixed(1)+','+Y(q.hl[n]).toFixed(1); }
+  const r=rulOf(n,t);
+  cards.push(`<div class="mc${a?' al':''}"><div class="h"><b>Salud y vida remanente</b><span class="ty">RUL</span></div><span class="big">HI ${fmt(h,0)}</span><span class="sm">${r==null?'Sin degradación, vida remanente sobre 60 días':'Vida remanente estimada '+fmtH(r)+(r!==Infinity?', banda de 15 %':'')}</span><svg viewBox="0 0 ${W_} ${H_}" role="img" aria-label="Salud del activo"><rect x="${pl}" y="${Y(20)}" width="${W_-pl-pr}" height="${Y(0)-Y(20)}" fill="var(--crit)" opacity=".12"/>${[0,50,100].map(v=>`<text x="${pl-4}" y="${Y(v)+3}" fill="var(--muted)" font-size="9" text-anchor="end">${v}</text>`).join('')}<path d="${dfut}" fill="none" stroke="var(--muted)" stroke-width="1.3" stroke-dasharray="4 3"/><path d="${dp}" fill="none" stroke="var(--genix)" stroke-width="2"/><line x1="${X(t)}" x2="${X(t)}" y1="${pt}" y2="${H_-pb}" stroke="var(--fg)" opacity=".6"/><text x="${pl}" y="${H_-3}" fill="var(--muted)" font-size="9">Azul real, gris proyección sin intervención, rojo zona de falla</text></svg></div>`);
+  const vk=VARS[n+'_'+cur.id]||VARS[n];
+  if(vk) cards.push(`<div class="mc"><div class="h"><b>Por qué lo dice el modelo</b><span class="ty">Explicabilidad</span></div><span class="sm">Aporte de cada variable a la alerta</span>${vk.map(v=>`<div class="pb"><span>${v[0]}</span><span class="tr"><i style="width:${v[1]*1.8}%"></i></span><span class="vv">${v[1]} %</span></div>`).join('')}</div>`);
+  const own=MODELS.filter(m=>m.n===n);
+  cards.push(`<div class="mc"><div class="h"><b>Modelos de este activo</b><span class="ty">${own.length||'Sin'} modelo${own.length===1?'':'s'}</span></div>${own.length?own.map(m=>{const q=mOut(m,o,t);return `<div><span class="sm">${m.id} ${m.type}, ${m.eng}</span><br>${m.name}<br><span style="color:${MST[q.st][1]}">${q.out}</span></div>`;}).join(''):'<span class="sm">Etapa cubierta por el coordinador y el pronóstico de niveles.</span>'}</div>`);
+  $('adC').innerHTML=cards.join('');
+  // prescriptivo
+  if(a){ const fail=cur.events.find(x=>x.node===n&&x.mode==='sin'&&x.kind==='fail'&&x.t>a.t); const rk=riskList().find(x=>x.e===a);
+    $('adP').innerHTML=`<span class="k">Resumen Genix IA</span><span style="color:var(--genix)">${a.model}, ${tf(a.t)}</span><span class="k">Causa probable</span><span>${txt(a.text)}</span><span class="k">Si no se actúa</span><span>${fail?txt(fail.text)+' ':''}${rk?`Se pierden ${fmt(rk.v/1000,1)} kt de clínker`+(rk.vc>50?` y ${fmt(rk.vc/1000,1)} kt de cemento.`:'.'):''}</span><span class="k">Acción recomendada</span><span>${txt(a.act)}</span><span class="k">Alternativa</span><span>${ALT[n]||'Monitorear con mayor frecuencia hasta la próxima ventana.'}</span>`; }
+  else $('adP').innerHTML=`<span class="k">Resumen Genix IA</span><span>${mode==='con'?'Sin evento abierto en este activo.':'Modo sin intervención, las alertas no se atienden.'} ${h<70?'Hay degradación en tendencia y los modelos siguen su evolución.':'Operación dentro de su patrón normal.'}</span>`;
+  // tabla de modelos
+  const types=['Todos',...new Set(MODELS.map(m=>m.type))];
+  $('mFlt').innerHTML=types.map(x=>`<button class="chip" data-f="${x}" aria-pressed="${x===MF}">${x}</button>`).join('');
+  $('mCnt').innerHTML=`<span><b>${MODELS.length}</b>modelos</span><span><b>${fmt(MODELS.reduce((s,m)=>s+({'1 min':1440,'5 min':288,'10 min':144,'15 min':96,'1 h':24}[m.freq]||10),0))}</b>inferencias por día</span><span><b>${nal}</b>en alerta</span><span><b>${nvi}</b>en vigilancia</span>`;
+  $('mT').innerHTML=MODELS.map((m,i)=>[m,res[i]]).filter(([m])=>MF==='Todos'||m.type===MF).sort((x,y)=>y[1].st-x[1].st).map(([m,q])=>`<tr${m.n===n?' class="hl"':''}><td><span class="n">${m.id}</span> ${m.name}</td><td class="mod">${m.type}<br><span style="color:var(--muted)">${m.eng}</span></td><td>${P_(m.n)}</td><td style="color:var(--muted)">${m.inp.join(', ')}</td><td>${q.out}</td><td style="color:var(--muted)">${m.perf}</td><td class="n">${m.freq}</td><td><span class="mst" style="color:${MST[q.st][1]};border-color:${MST[q.st][1]}">${MST[q.st][0]}</span></td></tr>`).join('');
+  renderQA(o,t);
+}
+$('mFlt').addEventListener('click',e=>{ const f=e.target.dataset.f; if(!f)return; MF=f; render(); });
+/* ---------- Pregunta a Genix ---------- */
+const QS=['¿Qué limita hoy la producción de clínker?','¿Qué equipo atiendo primero?','¿Cuánto pierdo si no actúo?','¿Hasta cuánto puedo subir la meta?','¿Cómo bajo el CO2 por tonelada?'];
+function renderQA(o,t){
+  $('qs').innerHTML=QS.map((q,i)=>`<button data-q="${i}" aria-pressed="${i===QA}">${q}</button>`).join('');
+  const P=CFG.proc, caps=o.caps.filter(c=>c[0]!=='Molienda de cemento').slice().sort((a,b)=>a[1]-b[1]);
+  let A='',S='';
+  if(QA===0){ A=o.R<P.meta-0.5?`Ahora limita ${o.bind}, con ${fmt(o.R)} t/h contra una meta de ${fmt(P.meta)} t/h. `:`La planta está en la meta de ${fmt(P.meta)} t/h. `; A+=`Las etapas con menos holgura son ${caps[0][0]} con ${fmt(caps[0][1])} t/h y ${caps[1][0]} con ${fmt(caps[1][1])} t/h.`; S='M20 Coordinador de restricciones, M19 Pronóstico de niveles'; }
+  else if(QA===1){ const L=mode==='con'?riskList().filter(x=>x.e.t<=t):[]; if(L.length){ const x=L[0]; A=`Prioriza ${ND[x.e.node].t} (${ND[x.e.node].g}). ${txt(x.e.act)} Evita perder ${fmt(x.v/1000,1)} kt de clínker`+(x.vc>50?` y ${fmt(x.vc/1000,1)} kt de cemento.`:'.'); } else { const w=NODES.filter(n=>MODES[n]).reduce((a,n)=>o.hl[n]<o.hl[a]?n:a,'tiro'); A=`No hay alertas abiertas. El activo con menor salud es ${ND[w].t} con HI ${fmt(o.hl[w],0)}, sin acción requerida por ahora.`; } S='M22 IA prescriptiva, modelos EFM y RUL'; }
+  else if(QA===2){ const sc=stats(sims.con,sims.con.N), ss=stats(sims.sin,sims.sin.N); let cc=0,cs=0; sims.con.out.forEach(q=>cc+=q.Cm*sims.con.dt); sims.sin.out.forEach(q=>cs+=q.Cm*sims.sin.dt);
+    A=`En el escenario ${cur.name.toLowerCase()}, sin intervención se dejan de producir ${fmt((ss.lost-sc.lost)/1000,1)} kt de clínker`+(cc-cs>50?` y ${fmt((cc-cs)/1000,1)} kt de cemento`:'')+` frente a seguir las recomendaciones, en ${cur.H<=200?fmt(cur.H,0)+' h':fmt(cur.H/24,0)+' días'}.`; S='M20 Coordinador, simulación con y sin acción'; }
+  else if(QA===3){ A=`Con la salud actual la planta sostiene hasta ${fmt(caps[0][1])} t/h. Sobre esa cifra limita ${caps[0][0]}${caps[1]?`, y después ${caps[1][0]} en ${fmt(caps[1][1])} t/h`:''}.`; S='M20 Coordinador de restricciones'; }
+  else { A=OPTBEST?`Bajar el factor clínker de ${fmt(P.fc,2)} a ${fmt(OPTBEST[0],3)} mantiene la resistencia estimada sobre ${fmt(P.rmin)} MPa y produce ${fmt(OPTBEST[1],0)} t/h de cemento. El consumo térmico actual es ${fmt(MET.tc,0)} kcal/kg contra ${fmt(P.tc0)} de referencia.`:'Con el horno detenido no hay recomendación de factor clínker.'; S='M21 Optimizador, M15 Sensor virtual de resistencia, M03 Balance de gases'; }
+  $('ans').innerHTML=`<span class="who">Genix Copilot</span><span>${A}</span><span class="src3">Fuentes: ${S}</span>`;
+}
+$('qs').addEventListener('click',e=>{ const q=e.target.dataset.q; if(q==null)return; QA=+q; render(); });
+
+/* ---------- Ajustes de planta ---------- */
+const FIELDS=[
+ ['Planta',[['planta','Nombre','txt'],['linea','Línea o área','txt']]],
+ ['Capacidades de alimentación y crudo',[['cap.cantera','Cantera','t/h'],['cap.chan','Chancado de caliza','t/h'],['cap.prehomo','Recuperador de cancha','t/h'],['cap.crudo','Molino de crudo','t/h'],['proc.fcr','Factor crudo a clínker','t/t']]],
+ ['Capacidades de línea de horno',[['cap.precal','Precalentador','t/h clk'],['cap.horno','Horno','t/h clk'],['cap.tiro','Ventilador de tiro','t/h clk'],['cap.filtro','Filtro de mangas','t/h clk'],['cap.enfriador','Enfriador','t/h clk'],['cap.comb','Combustibles','t/h clk'],['proc.ramp','Rampa de partida','t/h por h']]],
+ ['Molienda de cemento y despacho',[['cap.cem1','Molino de cemento 1','t/h'],['cap.cem2','Molino de cemento 2','t/h'],['cap.aditivos','Yeso y adiciones','t/h'],['cap.despacho','Demanda de despacho','t/h']]],
+ ['Silos y canchas, capacidad y nivel inicial',[['buf.prehomo','Cancha de prehomogeneización','two'],['buf.silocrudo','Silo de crudo','two'],['buf.siloclk','Silo de clínker','two'],['buf.silocem','Silos de cemento','two']]],
+ ['Referencias de proceso',[['proc.tc0','Consumo térmico de referencia','kcal/kg'],['proc.flow0','Caudal de gases a la meta','mil Nm³/h'],['proc.rmin','Resistencia mínima 28 días','MPa']]]
+];
+const getP=p=>p.split('.').reduce((o,k)=>o[k],CFG);
+function setP(p,v){ const k=p.split('.'); let o=CFG; for(let i=0;i<k.length-1;i++) o=o[k[i]]; o[k[k.length-1]]=v; }
+function buildCfg(){
+  $('cfgG').innerHTML=FIELDS.map(([g,fs])=>`<fieldset><legend>${g}</legend>${fs.map(([p,l,u])=>{
+    if(u==='txt') return `<label class="txt">${l}<input type="text" data-p="${p}" value="${String(getP(p)).replace(/"/g,'')}"></label>`;
+    if(u==='two'){ const v=getP(p); return `<label class="two">${l}<input type="number" min="0" step="500" data-p="${p}" data-i="0" value="${v[0]}"><input type="number" min="0" max="100" step="1" data-p="${p}" data-i="1" value="${v[1]}"><span class="u">t, %</span></label>`; }
+    return `<label>${l}<input type="number" min="0" step="any" data-p="${p}" value="${getP(p)}"><span class="u">${u}</span></label>`; }).join('')}</fieldset>`).join('');
+  $('cfgE').innerHTML=NODES.map(n=>`<tr><td class="n">${DEF.nd[n][0]}</td><td><input type="text" data-n="${n}" data-i="0" value="${CFG.nd[n][0].replace(/"/g,'')}"></td><td><input type="text" data-n="${n}" data-i="1" value="${CFG.nd[n][1].replace(/"/g,'')}"></td></tr>`).join('');
+}
+function applyCfg(){
+  buildND(); paintNames();
+  $('subT').textContent=`${CFG.planta}, ${CFG.linea}. Proceso y mantenimiento de la planta completa, desde la cantera hasta el despacho.`;
+  const mmax=Math.max(120,Math.ceil(Math.max(CFG.cap.horno,CFG.cap.tiro,CFG.proc.meta)*1.25/10)*10);
+  const ms=$('meta'); ms.max=mmax; ms.min=Math.round(mmax*0.45/2)*2; CFG.proc.meta=clamp(CFG.proc.meta,+ms.min,mmax); ms.value=CFG.proc.meta;
+  $('metaV').textContent=fmt(CFG.proc.meta)+' t/h'; $('wfMeta').textContent=fmt(CFG.proc.meta);
+  $('fc').value=CFG.proc.fc; $('fcV').textContent=fmt(CFG.proc.fc,2);
+  save(); const keep=idx; run(); idx=Math.min(keep,sims.con.N); drawChart(); render();
+}
+function flash(m){ $('cfgMsg').textContent=m; setTimeout(()=>{ if($('cfgMsg').textContent===m) $('cfgMsg').textContent=''; },2500); }
+$('cfgG').addEventListener('change',e=>{ const p=e.target.dataset.p; if(!p)return;
+  if(e.target.type==='text'){ setP(p,e.target.value.trim()||getP(p)); }
+  else { const v=Math.max(0,+e.target.value||0); if(e.target.dataset.i!=null){ const a=getP(p); a[+e.target.dataset.i]=+e.target.dataset.i===1?clamp(v,0,100):Math.max(1,v); } else setP(p,p==='proc.fcr'?clamp(v||1.6,1.2,2.2):v); }
+  applyCfg(); flash('Planta recalculada'); });
+$('cfgE').addEventListener('change',e=>{ const n=e.target.dataset.n; if(!n)return; CFG.nd[n][+e.target.dataset.i]=e.target.value.trim()||DEF.nd[n][+e.target.dataset.i]; applyCfg(); flash('Equipo actualizado'); });
+$('cfgReset').onclick=()=>{ CFG=clone(DEF); buildCfg(); applyCfg(); flash('Valores de fábrica restablecidos'); };
+$('cfgCopy').onclick=()=>{ const s=JSON.stringify(CFG); const done=()=>flash('Configuración copiada');
+  try{ navigator.clipboard.writeText(s).then(done).catch(()=>{ $('cfgJ').value=s; $('cfgJ').select(); flash('Configuración en el cuadro, cópiala con Ctrl+C'); }); }catch(x){ $('cfgJ').value=s; $('cfgJ').select(); flash('Configuración en el cuadro, cópiala con Ctrl+C'); } };
+$('cfgApply').onclick=()=>{ try{ const j=JSON.parse($('cfgJ').value); CFG=merge(clone(DEF),j); buildCfg(); applyCfg(); flash('Configuración aplicada'); }catch(x){ flash('El texto no es una configuración válida'); } };
+
+/* ---------- Controles ---------- */
+function setMode(m){mode=m;$('mCon').setAttribute('aria-pressed',m==='con');$('mSin').setAttribute('aria-pressed',m==='sin');render();}
+$('mCon').onclick=()=>setMode('con'); $('mSin').onclick=()=>setMode('sin');
+$('scrub').oninput=e=>{idx=+e.target.value;render();};
+$('meta').oninput=e=>{CFG.proc.meta=+e.target.value;$('metaV').textContent=fmt(CFG.proc.meta)+' t/h';$('wfMeta').textContent=fmt(CFG.proc.meta);save();run();drawChart();render();};
+$('fc').oninput=e=>{CFG.proc.fc=+e.target.value;$('fcV').textContent=fmt(CFG.proc.fc,2);save();run();drawChart();render();};
+const sp=[['v1',1],['v2',4],['v3',16]];
+sp.forEach(([id,v])=>$(id).onclick=()=>{speed=v;sp.forEach(([j])=>$(j).setAttribute('aria-pressed',j===id));});
+$('play').onclick=()=>{playing=!playing;$('play').textContent=playing?'Pausa':'Reproducir';if(playing&&idx>=sims.con.N)idx=0;last=performance.now();render();if(playing)requestAnimationFrame(tick);};
+function tick(now){
+  if(!playing)return;
+  const e_=(now-last)/1000; last=now;
+  const hps=(cur.H<=200?cur.H/60:cur.H/40)*speed;
+  idx=Math.min(sims.con.N,idx+e_*hps/sims.con.dt);
+  const i0=idx; idx=Math.round(idx); render(); idx=i0;
+  if(i0>=sims.con.N){playing=false;$('play').textContent='Reproducir';idx=sims.con.N;render();return;}
+  requestAnimationFrame(tick);
+}
+buildCfg(); buildSel(); $('desc').textContent=cur.desc;
+applyCfg(); select(SC[0]);
+
+/* ---------- Modo en línea: ?src=<json> o parámetros directos ---------- */
+function applyLive(j){
+  LIVE={R:j.clk_tph!=null?+j.clk_tph:undefined,Sc:j.silo_crudo_pct!=null?j.silo_crudo_pct/100:undefined,Sk:j.silo_clk_pct!=null?j.silo_clk_pct/100:undefined,Se:j.silo_cem_pct!=null?j.silo_cem_pct/100:undefined,health:j.health||{}};
+  if(j.fc){CFG.proc.fc=+j.fc;}
+  $('src').textContent='EN LÍNEA | '+(j.ts||''); $('src').style.color='var(--ok)';
+  const base=SC.find(x=>x.id==='base');
+  if(Array.isArray(j.alerts)) j.alerts.forEach(a=>base.events.push(E(0,'con',a.node,'alert',a.model||'Genix',a.text||'',a.act||'')));
+  applyCfg(); select(base); idx=0; render();
+}
+try{ const q=new URLSearchParams(location.search); const src=q.get('src');
+  if(src){ fetch(src+(src.includes('?')?'&':'?')+'_='+Date.now(),{credentials:'omit'}).then(r=>r.json()).then(applyLive).catch(e=>{$('src').textContent='SIN CONEXIÓN, MODO SIMULACIÓN';}); }
+  else if(q.get('clk_tph')){ const j={}; q.forEach((v,k)=>j[k]=v); applyLive(j); }
+}catch(e){}
+window.__COORD={SC,simulate,CFG:()=>CFG};
+})();
+</script>
